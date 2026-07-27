@@ -80,6 +80,24 @@ function patchPlanVersion(source) {
   throw new Error('Could not find PLAN_VERSION to invalidate carried-over sessions.');
 }
 
+// The rw_vocab source is a small, fixed external list (historically as few as 15 questions
+// total). Once a user has permanently retired all of them, requiring exactly 5 fresh vocab
+// picks every day throws "Not enough usable questions remain in rw_vocab" and blocks the app
+// forever - the daily rollover fix above made this reachable by finally trying to build a real
+// plan instead of endlessly recycling a stale one. Falling back to extra hard R&W questions for
+// unavailable vocab slots keeps the app usable without ever repeating a retired question.
+function patchVocabShortfall(source) {
+  const oldValidate = "if(counts.rw_vocab!==5||counts.rw_hard!==25||counts.math_hard!==20)throw new Error('Daily plan mix mismatch.');";
+  const newValidate = "if(counts.rw_vocab+counts.rw_hard!==30||counts.math_hard!==20)throw new Error('Daily plan mix mismatch.');";
+  const oldBuild = "export function buildOrderedPlan(rawBuckets,{completed=[],blocked=[]}={}){const pools=buildCandidatePools(rawBuckets),completedSet=new Set(sanitizeIdArray(completed)),blockedSet=new Set(sanitizeIdArray(blocked)),used=new Set();const vocab=takeAvailable(pools.rw_vocab,5,RESERVE_COUNT,completedSet,blockedSet,used),reading=takeAvailable(pools.rw_hard,25,RESERVE_COUNT,completedSet,blockedSet,used),math=takeAvailable(pools.math_hard,20,RESERVE_COUNT,completedSet,blockedSet,used);const plan=[];let vi=0,ri=0,mi=0;for(let block=0;block<10;block+=1){if(block%2===0){plan.push(vocab.chosen[vi++],reading.chosen[ri++],reading.chosen[ri++])}else{plan.push(reading.chosen[ri++],reading.chosen[ri++],reading.chosen[ri++])}plan.push(math.chosen[mi++],math.chosen[mi++])}validatePlan(plan);return{plan,reserve:{rw_vocab:vocab.reserve,rw_hard:reading.reserve,math_hard:math.reserve}}}";
+  const newBuild = "export function buildOrderedPlan(rawBuckets,{completed=[],blocked=[]}={}){const pools=buildCandidatePools(rawBuckets),completedSet=new Set(sanitizeIdArray(completed)),blockedSet=new Set(sanitizeIdArray(blocked)),used=new Set();const vocabPool=pools.rw_vocab.filter((item)=>!blockedSet.has(item.id)&&!used.has(item.id)&&!completedSet.has(item.id));const vocabCount=Math.min(5,vocabPool.length);const vocab=takeAvailable(pools.rw_vocab,vocabCount,RESERVE_COUNT,completedSet,blockedSet,used);const reading=takeAvailable(pools.rw_hard,25+(5-vocabCount),RESERVE_COUNT,completedSet,blockedSet,used);const math=takeAvailable(pools.math_hard,20,RESERVE_COUNT,completedSet,blockedSet,used);const combinedReading=[...vocab.chosen,...reading.chosen];const plan=[];let ci=0,mi=0;for(let block=0;block<10;block+=1){plan.push(combinedReading[ci++],combinedReading[ci++],combinedReading[ci++],math.chosen[mi++],math.chosen[mi++])}validatePlan(plan);return{plan,reserve:{rw_vocab:vocab.reserve,rw_hard:reading.reserve,math_hard:math.reserve}}}";
+
+  if (source.includes(newBuild) && source.includes(newValidate)) return source;
+  if (!source.includes(oldValidate)) throw new Error('Could not find validatePlan mix check to relax for vocab shortfall.');
+  if (!source.includes(oldBuild)) throw new Error('Could not find buildOrderedPlan to patch for vocab shortfall.');
+  return source.replace(oldValidate, newValidate).replace(oldBuild, newBuild);
+}
+
 const [rawApp, rawQueue, answers, homeCss, practiceCss, addon] = await Promise.all([
   getText(`${production}/practice-app.js`, 'public/practice-app.js'),
   getText(`${production}/queue.js`, 'public/queue.js'),
@@ -90,7 +108,7 @@ const [rawApp, rawQueue, answers, homeCss, practiceCss, addon] = await Promise.a
 ]);
 
 const app = stripAddon(rawApp, '// Daily Fifty retired-question migration.');
-const queue = patchPlanVersion(patchDailyRollover(patchQueue(rawQueue)));
+const queue = patchVocabShortfall(patchPlanVersion(patchDailyRollover(patchQueue(rawQueue))));
 
 await Promise.all([
   writeFile('public/practice-app.js', `${app}\n${addon.trim()}\n`),
