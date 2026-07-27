@@ -73,6 +73,27 @@ function mergeAnswers(remoteValue: unknown, localValue: unknown) {
   return merged;
 }
 
+function planIds(session: any): Set<string> {
+  const ids = new Set<string>();
+  if (!Array.isArray(session?.plan)) return ids;
+  for (const item of session.plan) {
+    const id = String(item?.id || "").toLowerCase();
+    if (ID_PATTERN.test(id)) ids.add(id);
+  }
+  return ids;
+}
+
+// Answers are merged by question id across every device payload, so ids belonging to an
+// earlier day's plan would otherwise accumulate on the current date and inflate its counts.
+function answersInPlan(session: any): Record<string, any> {
+  const allowed = planIds(session);
+  const answers = asObject(session?.answers);
+  if (!allowed.size) return answers;
+  const scoped: Record<string, any> = {};
+  for (const [id, answer] of Object.entries(answers)) if (allowed.has(id)) scoped[id] = answer;
+  return scoped;
+}
+
 function sessionProgress(session: any): number {
   return Object.values(asObject(session?.answers)).reduce((sum: number, answer: any) => sum + answerScore(answer), 0);
 }
@@ -172,6 +193,7 @@ Deno.serve(async (req: Request) => {
     const activeCandidate = mergeSession(cached.session, local.session);
     const activeDate = String(activeCandidate.date || "");
     let canonicalSession = activeCandidate;
+    let retirableAnswers = asObject(canonicalSession.answers);
 
     if (DATE_PATTERN.test(activeDate)) {
       const [{ data: sessionRow, error: sessionError }, { data: answerRows, error: answersError }] = await Promise.all([
@@ -187,6 +209,8 @@ Deno.serve(async (req: Request) => {
       canonicalSession = mergeSession(dbSession, activeCandidate);
       canonicalSession.date = activeDate;
       canonicalSession.answers = mergeAnswers(dbAnswers, canonicalSession.answers);
+      retirableAnswers = asObject(canonicalSession.answers);
+      canonicalSession.answers = answersInPlan(canonicalSession);
 
       const canonicalIndex = Math.min(49, Math.max(0, Number(canonicalSession.index || 0)));
       const { error: sessionWriteError } = await supabase.from("daily_fifty_daily_sessions").upsert({
@@ -217,13 +241,13 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    const retiredFromAnswers = Object.entries(asObject(canonicalSession.answers))
+    const retiredFromAnswers = Object.entries(retirableAnswers)
       .filter(([id, answer]) => ID_PATTERN.test(id) && Boolean((answer as any)?.completed))
       .map(([id]) => id.toLowerCase());
     const retiredIds = cleanIds([...(cached.completed || []), ...(local.completed || []), ...retiredFromAnswers]);
 
     if (retiredIds.length) {
-      const answerMap = asObject(canonicalSession.answers);
+      const answerMap = retirableAnswers;
       const historyRows = retiredIds.map((questionId) => {
         const answer = asObject(answerMap[questionId]);
         const hasResult = answer.result !== null && answer.result !== undefined;
