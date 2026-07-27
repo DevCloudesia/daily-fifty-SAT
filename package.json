@@ -1,0 +1,17 @@
+{
+  "name": "daily-fifty",
+  "version": "6.1.4",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/assets.mjs && next dev",
+    "build": "node scripts/assets.mjs && next build",
+    "start": "next start",
+    "snapshot": "node scripts/assets.mjs"
+  },
+  "dependencies": {
+    "next": "15.5.20",
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
+  }
+}
