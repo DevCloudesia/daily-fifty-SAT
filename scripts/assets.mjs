@@ -57,6 +57,17 @@ function patchQueue(source) {
   throw new Error('Could not verify the permanent no-repeat queue behavior.');
 }
 
+// isValidSession treated an unfinished session from an earlier day as still valid, so the app
+// never rolled over to a new day: it kept serving yesterday's plan and yesterday's progress
+// count until all 50 were completed. A daily set belongs to its own date, full stop.
+function patchDailyRollover(source) {
+  const carryOver = "if(session.date===date)return true;const answers=session.answers&&typeof session.answers==='object'?session.answers:{};const values=Object.values(answers);const hasProgress=values.some(answer=>answer&&typeof answer==='object'&&(answer.completed||answer.checked||answer.revealed||answer.selected||String(answer.input||'').trim()));const finished=values.filter(answer=>answer?.completed).length>=50;return hasProgress&&!finished}";
+  const strictDate = "return session.date===date}";
+  if (source.includes(carryOver)) return source.replace(carryOver, strictDate);
+  if (source.includes(strictDate) && !source.includes('hasProgress&&!finished')) return source;
+  throw new Error('Could not verify the daily rollover behavior in isValidSession.');
+}
+
 const [rawApp, rawQueue, answers, homeCss, practiceCss, addon] = await Promise.all([
   getText(`${production}/practice-app.js`, 'public/practice-app.js'),
   getText(`${production}/queue.js`, 'public/queue.js'),
@@ -67,7 +78,7 @@ const [rawApp, rawQueue, answers, homeCss, practiceCss, addon] = await Promise.a
 ]);
 
 const app = stripAddon(rawApp, '// Daily Fifty retired-question migration.');
-const queue = patchQueue(rawQueue);
+const queue = patchDailyRollover(patchQueue(rawQueue));
 
 await Promise.all([
   writeFile('public/practice-app.js', `${app}\n${addon.trim()}\n`),
