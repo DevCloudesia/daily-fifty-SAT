@@ -68,6 +68,18 @@ function patchDailyRollover(source) {
   throw new Error('Could not verify the daily rollover behavior in isValidSession.');
 }
 
+// The carry-over bug did not just show yesterday's questions: the app re-stamped the carried
+// session with the current date, so the corrupted session became indistinguishable from real
+// progress and even a correct isValidSession accepts it. PLAN_VERSION is the app's own
+// invalidation lever - bumping it retires every stored session on every device at once.
+function patchPlanVersion(source) {
+  const previous = "export const PLAN_VERSION = 'hard-vocab-live-v7';";
+  const current = "export const PLAN_VERSION = 'hard-vocab-live-v8';";
+  if (source.includes(current)) return source;
+  if (source.includes(previous)) return source.replace(previous, current);
+  throw new Error('Could not find PLAN_VERSION to invalidate carried-over sessions.');
+}
+
 const [rawApp, rawQueue, answers, homeCss, practiceCss, addon] = await Promise.all([
   getText(`${production}/practice-app.js`, 'public/practice-app.js'),
   getText(`${production}/queue.js`, 'public/queue.js'),
@@ -78,7 +90,7 @@ const [rawApp, rawQueue, answers, homeCss, practiceCss, addon] = await Promise.a
 ]);
 
 const app = stripAddon(rawApp, '// Daily Fifty retired-question migration.');
-const queue = patchDailyRollover(patchQueue(rawQueue));
+const queue = patchPlanVersion(patchDailyRollover(patchQueue(rawQueue)));
 
 await Promise.all([
   writeFile('public/practice-app.js', `${app}\n${addon.trim()}\n`),
