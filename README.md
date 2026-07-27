@@ -90,7 +90,26 @@ supabase functions deploy daily-fifty-classify --no-verify-jwt
 supabase functions deploy daily-fifty-vocab --no-verify-jwt
 ```
 
-`daily-fifty-sync` uses custom `x-daily-fifty-key` authentication. The classification and vocabulary functions are public data endpoints.
+**Set the secret before deploying.** `daily-fifty-sync` and `daily-fifty-classify` both read
+`DAILY_FIFTY_SYNC_KEY` from the environment and reject every request when it is unset, so
+deploying without the secret in place takes sync down until it is set. The value must match the
+`DAILY_FIFTY_SYNC_KEY` stored in Vercel, which is what the `/api/sync` proxy sends.
+
+`daily-fifty-sync` and `daily-fifty-classify` use custom `x-daily-fifty-key` authentication.
+`daily-fifty-vocab` is a public read-only data endpoint. `daily-fifty-classify` holds the service
+role and fans each call out to 150 upstream requests, so it is invoked with the key:
+
+```bash
+curl -H "x-daily-fifty-key: your-key" \
+  "https://YOUR_PROJECT.supabase.co/functions/v1/daily-fifty-classify?offset=0&limit=100"
+```
+
+## Sync protocol
+
+`POST /api/sync` merges a device payload and writes the result. `GET /api/sync` is a pure read:
+it forwards `{"mode":"read"}`, which returns the merged view without touching any table. Sending
+a write on every page load was upserting the session, every answer row, and the whole retirement
+history each time.
 
 ## Progress model
 
