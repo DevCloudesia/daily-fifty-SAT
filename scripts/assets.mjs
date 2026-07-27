@@ -2,22 +2,45 @@ import { readFile, writeFile } from 'node:fs/promises';
 
 const production = 'https://daily-fifty.vercel.app';
 
+// The committed snapshots start out empty, so a fallback that returns an empty file just moves
+// the failure somewhere less obvious. Only a snapshot with real content is worth falling back to.
+async function fallbackText(fallbackPath, error) {
+  if (process.env.VERCEL || !fallbackPath) throw error;
+  const text = await readFile(fallbackPath, 'utf8').catch(() => '');
+  if (!text.trim()) {
+    throw new Error(
+      `${error.message} No usable snapshot in ${fallbackPath}; run "npm run snapshot" with access to ${production} first.`,
+    );
+  }
+  console.warn(`Using local snapshot ${fallbackPath}: ${error.message}`);
+  return text;
+}
+
 async function getText(url, fallbackPath) {
   try {
     const response = await fetch(url, { cache: 'no-store' });
-    if (!response.ok) throw new Error(`${url} returned ${response.status}`);
+    if (!response.ok) throw new Error(`${url} returned ${response.status}.`);
     return await response.text();
   } catch (error) {
-    if (process.env.VERCEL || !fallbackPath) throw error;
-    return await readFile(fallbackPath, 'utf8');
+    return await fallbackText(fallbackPath, error);
   }
 }
 
 async function stylesheetFor(pathname, position, fallbackPath) {
-  const html = await getText(`${production}${pathname}`);
+  let html;
+  try {
+    const response = await fetch(`${production}${pathname}`, { cache: 'no-store' });
+    if (!response.ok) throw new Error(`${production}${pathname} returned ${response.status}.`);
+    html = await response.text();
+  } catch (error) {
+    // The stylesheet name is hashed into the page, so without the HTML there is nothing to
+    // resolve. Previously this fetch passed no fallbackPath and threw straight past the
+    // snapshot, failing every offline build even though the CSS was already on disk.
+    return await fallbackText(fallbackPath, error);
+  }
   const hrefs = [...html.matchAll(/href="([^"]+\.css)"/g)].map((match) => match[1]);
   const href = position === 'first' ? hrefs[0] : hrefs.at(-1);
-  if (!href) throw new Error(`No stylesheet found for ${pathname}.`);
+  if (!href) return await fallbackText(fallbackPath, new Error(`No stylesheet found for ${pathname}.`));
   return await getText(new URL(href, production).href, fallbackPath);
 }
 
