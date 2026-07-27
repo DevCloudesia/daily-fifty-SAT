@@ -408,7 +408,11 @@ Deno.serve(async (req: Request) => {
       blocked: cleanIds([...(cached.blocked || []), ...(local.blocked || [])]),
       session: canonicalSession,
       preferences: choosePreferences(cached.preferences, local.preferences, cached.updatedAt, local.updatedAt),
-      updatedAt: now,
+      // A read-only call must return a stable updatedAt when nothing actually changed. Stamping
+      // "now" on every call - including reads - meant a client that polls GET /api/sync and
+      // compares updatedAt to detect remote changes would see a "change" on every single poll,
+      // even with a completely idle database, and could re-merge or reload in a tight loop.
+      updatedAt: readOnly ? (cached.updatedAt || now) : now,
     };
 
     if (!readOnly) {
