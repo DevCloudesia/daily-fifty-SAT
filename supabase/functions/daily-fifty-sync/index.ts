@@ -99,22 +99,11 @@ function compareSessions(remote: Record<string, any>, local: Record<string, any>
 }
 
 function chooseDifferentDateSession(remote: Record<string, any>, local: Record<string, any>) {
-  const remoteProgress = sessionProgress(remote);
-  const localProgress = sessionProgress(local);
-  const remoteDone = completedCount(remote);
-  const localDone = completedCount(local);
+  // Sessions from different calendar days aren't comparable by progress: The Daily Fifty
+  // is a per-day set, so the later date always supersedes an earlier one, finished or not.
+  // Completed questions are preserved separately in daily_fifty_question_history regardless.
   const remoteDate = String(remote.date || "");
   const localDate = String(local.date || "");
-  if (remoteProgress > 0 && localProgress === 0) {
-    if (remoteDone >= 50 && localDate > remoteDate) return local;
-    return remote;
-  }
-  if (localProgress > 0 && remoteProgress === 0) {
-    if (localDone >= 50 && remoteDate > localDate) return remote;
-    return local;
-  }
-  if (remoteProgress !== localProgress) return localProgress > remoteProgress ? local : remote;
-  if (remoteDone !== localDone) return localDone > remoteDone ? local : remote;
   return localDate > remoteDate ? local : remote;
 }
 
