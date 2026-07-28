@@ -1,3 +1,4 @@
+import "./globals.css";
 import './home.css';
 export const metadata={title:'The Daily Fifty',description:'Focused daily SAT practice'};
 export const viewport={width:'device-width',initialScale:1,themeColor:'#ffffff'};

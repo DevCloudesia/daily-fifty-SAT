@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "node scripts/assets.mjs && next dev",
-    "build": "node scripts/assets.mjs && next build",
+    "build": "node scripts/assets.mjs && node scripts/restore-home-css.mjs && next build && node scripts/verify-css-build.mjs",
     "start": "next start",
     "snapshot": "node scripts/snapshot-production.mjs"
   },
