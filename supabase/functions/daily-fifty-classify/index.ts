@@ -2,6 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 const INDEX_URL = "https://daily-fifty-fast-index.vercel.app/question-index.json";
 const QUESTION_URL = "https://daily-fifty-api.vercel.app/api/question?id=";
+const SYNC_KEY = Deno.env.get("DAILY_FIFTY_SYNC_KEY");
 
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -62,11 +63,24 @@ async function mapConcurrent<T, R>(items: T[], concurrency: number, worker: (ite
   return results;
 }
 
+// Non-numeric query values used to become NaN, which survives the clamps: the scan silently
+// processed nothing and reported nextOffset: null, so pagination stopped early looking healthy.
+function positiveInt(value: string | null, fallback: number) {
+  const parsed = Number(value ?? "");
+  return Number.isFinite(parsed) ? Math.trunc(parsed) : fallback;
+}
+
 Deno.serve(async (req: Request) => {
+  // This endpoint holds the service role, is deployed --no-verify-jwt, and fans a single call
+  // out to 150 upstream fetches plus 150 table writes, so it cannot stay unauthenticated.
+  if (!SYNC_KEY || req.headers.get("x-daily-fifty-key") !== SYNC_KEY) {
+    return json({ error: "Unauthorized" }, 401);
+  }
+
   try {
     const url = new URL(req.url);
-    const offset = Math.max(0, Number(url.searchParams.get("offset") || 0));
-    const limit = Math.min(150, Math.max(1, Number(url.searchParams.get("limit") || 100)));
+    const offset = Math.max(0, positiveInt(url.searchParams.get("offset"), 0));
+    const limit = Math.min(150, Math.max(1, positiveInt(url.searchParams.get("limit"), 100)));
     const retryErrors = url.searchParams.get("retryErrors") === "1";
 
     const indexResponse = await fetch(INDEX_URL, { cache: "no-store" });

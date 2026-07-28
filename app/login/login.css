@@ -1,0 +1,100 @@
+.login-shell {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: radial-gradient(circle at 20% 20%, #fdf2f8 0%, #f7fafc 45%, #f0fdfa 100%);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 360px;
+  background: #ffffff;
+  border-radius: 28px;
+  padding: 40px 32px 32px;
+  box-shadow: 0 20px 45px rgba(20, 30, 50, 0.08), 0 2px 8px rgba(20, 30, 50, 0.06);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.login-mark {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 18px;
+  color: #fff;
+  background: linear-gradient(135deg, #ec4899, #14b8a6);
+  margin-bottom: 16px;
+}
+
+.login-card h1 {
+  margin: 0 0 6px;
+  font-size: 20px;
+  font-weight: 800;
+  color: #1f2937;
+}
+
+.login-sub {
+  margin: 0 0 22px;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.login-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 13px 16px;
+  border-radius: 999px;
+  border: 1px solid #e5e7eb;
+  font-size: 15px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.login-input:focus {
+  border-color: #ec4899;
+  box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.15);
+}
+
+.login-error {
+  width: 100%;
+  margin: 12px 0 0;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: rgba(236, 72, 153, 0.1);
+  color: #be185d;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.login-button {
+  width: 100%;
+  margin-top: 18px;
+  padding: 13px 16px;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ec4899, #db2777);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.15s ease;
+  box-shadow: 0 8px 20px rgba(219, 39, 119, 0.28);
+}
+
+.login-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(219, 39, 119, 0.34);
+}
+
+.login-button:active {
+  transform: translateY(0);
+}

@@ -10,7 +10,7 @@ function configuration() {
   return { url, key };
 }
 
-async function forward(payload) {
+async function forward(payload, mode) {
   const { url, key } = configuration();
   const response = await fetch(url, {
     method: 'POST',
@@ -18,7 +18,7 @@ async function forward(payload) {
       'content-type': 'application/json',
       'x-daily-fifty-key': key,
     },
-    body: JSON.stringify({ payload }),
+    body: JSON.stringify(mode ? { payload, mode } : { payload }),
     cache: 'no-store',
     signal: AbortSignal.timeout(12000),
   });
@@ -33,15 +33,17 @@ async function forward(payload) {
 
 export async function POST(request) {
   try {
-    return await forward((await request.json())?.payload || {});
+    return await forward((await request.json())?.payload || {}, null);
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : String(error) }, { status: 502 });
   }
 }
 
+// A read must stay a read: this used to run the full write path, upserting the session, every
+// answer row, and the entire retirement history on every page load.
 export async function GET() {
   try {
-    return await forward({});
+    return await forward({}, 'read');
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : String(error) }, { status: 502 });
   }
