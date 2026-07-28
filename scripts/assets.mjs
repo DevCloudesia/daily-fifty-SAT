@@ -98,6 +98,24 @@ function patchVocabShortfall(source) {
   return source.replace(oldValidate, newValidate).replace(oldBuild, newBuild);
 }
 
+// practice.css is re-scraped from production on every build, so a rule added directly to
+// app/practice/practice.css would be silently wiped out the next time this script runs. Appended
+// rules survive because they are re-added here every time, after the fetch, not edited in place.
+function appendLoaderStyles(css) {
+  const marker = '/* Daily Fifty custom loader */';
+  if (css.includes(marker)) return css;
+  const rules = `
+${marker}
+.df-loader { position: relative; width: 60px; height: 60px; margin: 0 auto 14px; display: flex; align-items: center; justify-content: center; }
+.df-loader-ring { width: 100%; height: 100%; animation: dfLoaderSpin 1.1s linear infinite; }
+.df-loader-track { fill: none; stroke: rgba(236, 72, 153, 0.12); stroke-width: 5; }
+.df-loader-arc { fill: none; stroke: url(#dailyFiftyLoaderGradient); stroke-width: 5; stroke-linecap: round; stroke-dasharray: 108 300; }
+.df-loader-mark { position: absolute; font-weight: 800; font-size: 13px; letter-spacing: 0.5px; color: #ec4899; }
+@keyframes dfLoaderSpin { to { transform: rotate(360deg); } }
+`;
+  return `${css.trimEnd()}\n${rules}`;
+}
+
 const [rawApp, rawQueue, answers, homeCss, practiceCss, addon] = await Promise.all([
   getText(`${production}/practice-app.js`, 'public/practice-app.js'),
   getText(`${production}/queue.js`, 'public/queue.js'),
@@ -115,7 +133,7 @@ await Promise.all([
   writeFile('public/queue.js', queue),
   writeFile('public/answers.js', answers),
   writeFile('app/home.css', homeCss),
-  writeFile('app/practice/practice.css', practiceCss),
+  writeFile('app/practice/practice.css', appendLoaderStyles(practiceCss)),
 ]);
 
 console.log('Shared database sync, no-repeat queue, and current styles snapshotted.');

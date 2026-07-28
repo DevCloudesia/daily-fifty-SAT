@@ -31,9 +31,22 @@ Required environment variables:
 ```text
 DAILY_FIFTY_SYNC_URL=
 DAILY_FIFTY_SYNC_KEY=
+DAILY_FIFTY_SITE_PASSWORD=
 ```
 
-Never commit the real sync key. Store the same value in Vercel and in the Supabase Edge Function secret named `DAILY_FIFTY_SYNC_KEY`.
+Never commit the real sync key or site password. Store `DAILY_FIFTY_SYNC_KEY` in Vercel and in the
+Supabase Edge Function secret of the same name. `DAILY_FIFTY_SITE_PASSWORD` only needs to exist in
+Vercel.
+
+## Site password gate
+
+`middleware.js` blocks `/practice` and `/api/sync` behind a single shared password, checked
+against `DAILY_FIFTY_SITE_PASSWORD`. There are no user accounts - anyone with the password sees
+the same shared progress, matching how sync already works. Signing in at `/login` sets an
+HttpOnly, signed cookie (`df_auth`, ~180 days) computed as an HMAC of the password; the cookie
+itself never contains the password. If `DAILY_FIFTY_SITE_PASSWORD` is unset, the gate fails
+**closed** - `/practice` and `/api/sync` become unreachable rather than unprotected - so the
+variable must be set before this deploys, not after.
 
 ## Finding the sync key in Vercel
 
