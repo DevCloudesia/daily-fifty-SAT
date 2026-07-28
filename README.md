@@ -127,3 +127,15 @@ history each time.
 ## Progress model
 
 Completed question IDs are permanently stored in `daily_fifty_question_history`. Daily plans and per-question answer state are stored in normalized date-based tables. The sync function merges device progress without allowing a newer empty session to erase a richer unfinished session.
+
+## Canonical production assets
+
+`main` contains the browser runtime and practice stylesheet used by the verified production deployment. Normal builds validate these committed files and do **not** scrape the live `/practice` page. This prevents the login stylesheet from replacing the practice interface during a build.
+
+To intentionally refresh the three public browser assets from production:
+
+```bash
+npm run snapshot
+```
+
+Review the resulting diff before committing. The real `DAILY_FIFTY_SYNC_KEY` remains only in Vercel and Supabase environment settings.

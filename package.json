@@ -7,7 +7,7 @@
     "dev": "node scripts/assets.mjs && next dev",
     "build": "node scripts/assets.mjs && next build",
     "start": "next start",
-    "snapshot": "node scripts/assets.mjs"
+    "snapshot": "node scripts/snapshot-production.mjs"
   },
   "dependencies": {
     "next": "15.5.20",
