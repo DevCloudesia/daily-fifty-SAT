@@ -64,3 +64,13 @@
 - [x] Merge PR #3 into main.
 - [x] Promote the exact verified main deployment to production.
 - [x] Verify the production alias, deployment commit, and final build status.
+
+## Responsive practice proportions
+
+- [x] Remove unnecessary minimum height from short question cards.
+- [x] Keep the question toolbar at one consistent desktop height, even beside long answers.
+- [x] Give the answer panel a larger, stable share of the desktop workspace.
+- [x] Preserve the stacked mobile layout and calculator split behavior.
+- [x] Add regression coverage for the fixed toolbar and revised column proportions.
+- [ ] Run tests, build, and browser verification before publishing.
+- [ ] Publish a preview for visual approval before production.
