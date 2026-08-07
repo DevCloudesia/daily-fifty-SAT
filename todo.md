@@ -51,4 +51,4 @@
 - [x] Match answer-choice typography to the question text font.
 - [x] Add regression coverage for equal widths, matched heights, pill shapes, and typography.
 - [x] Run tests and the production build.
-- [ ] Publish and verify the final Vercel preview.
+- [x] Publish and verify the final Vercel preview.
