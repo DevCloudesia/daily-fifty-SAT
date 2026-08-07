@@ -41,4 +41,4 @@
 - [x] Give long answer choices a calmer text treatment and more breathing room.
 - [x] Add regression coverage for navigation placement and non-sticky explanation behavior.
 - [x] Run tests and the production build.
-- [ ] Publish and verify a Vercel preview before production.
+- [x] Publish and verify a Vercel preview before production.
