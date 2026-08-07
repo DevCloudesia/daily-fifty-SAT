@@ -93,4 +93,4 @@
 - [x] Verify the release does not reset or delete current-day or historical progress.
 - [x] Publish the verified `main` commit to the production website.
 - [x] Verify the production alias, deployed commit, build status, and runtime errors.
-- [ ] Delete stale merged feature branches so the repository keeps only current work.
+- [x] Delete stale merged feature branches so the repository keeps only current work.
