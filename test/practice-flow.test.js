@@ -139,7 +139,7 @@ test('navigation widths, answer height, choice pills, and content typography are
 
 test('desktop practice proportions keep the toolbar fixed and reserve more room for answers', async () => {
   const css = await readFile(new URL('../app/practice/practice.css', import.meta.url), 'utf8');
-  assert.match(css, /\.workspace\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1\.6fr\)\s*minmax\(430px,\s*0\.92fr\);/s);
+  assert.match(css, /\.workspace\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1\.52fr\)\s*minmax\(460px,\s*1fr\);/s);
   assert.match(css, /\.question-column\s*\{[^}]*grid-template-rows:\s*110px\s*minmax\(0,\s*1fr\);/s);
   assert.match(css, /\.question-toolbar\s*\{[^}]*height:\s*110px;[^}]*min-height:\s*110px;/s);
   assert.match(css, /\.question-panel\s*\{[^}]*min-height:\s*480px;/s);
