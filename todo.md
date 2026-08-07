@@ -61,6 +61,6 @@
 - [x] Add GitHub CI for tests and production-build validation.
 - [x] Run all tests and the production build with the repository safeguards.
 - [x] Publish and verify the documentation and CI preview.
-- [ ] Merge PR #3 into main.
-- [ ] Promote the exact verified main deployment to production.
-- [ ] Verify the production alias, deployment commit, and final build status.
+- [x] Merge PR #3 into main.
+- [x] Promote the exact verified main deployment to production.
+- [x] Verify the production alias, deployment commit, and final build status.
