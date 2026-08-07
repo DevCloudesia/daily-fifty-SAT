@@ -72,5 +72,6 @@
 - [x] Give the answer panel a larger, stable share of the desktop workspace.
 - [x] Preserve the stacked mobile layout and calculator split behavior.
 - [x] Add regression coverage for the fixed toolbar and revised column proportions.
-- [ ] Run tests, build, and browser verification before publishing.
-- [ ] Publish a preview for visual approval before production.
+- [x] Run tests and the production build before publishing.
+- [x] Publish a preview for visual approval before production.
+- [ ] Complete authenticated visual verification of the preview before merge and production.
