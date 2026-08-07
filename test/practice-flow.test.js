@@ -97,3 +97,18 @@ test('timer SVG remains bounded and transparent even before CSS loads', async ()
   assert.match(page, /<svg className="timer-ring" width="54" height="54"[^>]*fill="none"/);
   assert.equal((page.match(/<circle[^>]*fill="none"/g) ?? []).length, 2);
 });
+
+test('English navigation stays on opposite sides when the calculator is hidden', async () => {
+  const css = await readFile(new URL('../app/practice/practice.css', import.meta.url), 'utf8');
+  assert.match(css, /\.below-question-actions #previousButton\s*\{\s*grid-column:\s*1;/s);
+  assert.match(css, /\.below-question-actions #skipButton\s*\{[^}]*grid-column:\s*3;/s);
+  assert.match(css, /\.button-calculator\s*\{[^}]*grid-column:\s*2;/s);
+});
+
+test('practice chrome scrolls away and long choices keep readable spacing', async () => {
+  const css = await readFile(new URL('../app/practice/practice.css', import.meta.url), 'utf8');
+  assert.match(css, /\.topbar\s*\{[^}]*position:\s*relative;/s);
+  assert.match(css, /\.answer-column\s*\{[^}]*position:\s*static;/s);
+  assert.match(css, /\.answer-area\s*\{[^}]*gap:\s*14px;/s);
+  assert.match(css, /\.choice-content,\s*\.choice-content p\s*\{[^}]*font-size:\s*17px\s*!important;[^}]*line-height:\s*1\.55\s*!important;/s);
+});
