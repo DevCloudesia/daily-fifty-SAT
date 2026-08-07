@@ -32,7 +32,7 @@
 - [x] Run the full test and production-build checks.
 - [x] Perform an authenticated visual/static smoke test of the practice route.
 - [x] Publish a preview pull request and verify its deployment.
-- [ ] Promote only after the repaired preview is visually verified.
+- [x] Promote only after the repaired preview is visually verified.
 
 ## Practice layout polish
 
@@ -74,7 +74,7 @@
 - [x] Add regression coverage for the fixed toolbar and revised column proportions.
 - [x] Run tests and the production build before publishing.
 - [x] Publish a preview for visual approval before production.
-- [ ] Complete authenticated visual verification of the preview before merge and production.
+- [x] Complete authenticated visual verification of the preview before merge and production.
 - [x] Increase the desktop answer panel to roughly 40% for long choices.
 - [x] Re-run proportion tests, production build, and preview checks.
 
@@ -88,8 +88,9 @@
 
 ## Final production promotion and repository cleanup
 
-- [ ] Merge the approved PR #4 into `main` using the verified head commit.
-- [ ] Verify GitHub `main` contains the latest practice code and documentation.
-- [ ] Promote the exact verified deployment to the production website.
-- [ ] Verify the production alias, deployed commit, build status, and runtime errors.
+- [x] Merge the approved PR #4 into `main` using the verified head commit.
+- [x] Verify GitHub `main` contains the latest practice code and documentation.
+- [x] Verify the release does not reset or delete current-day or historical progress.
+- [x] Publish the verified `main` commit to the production website.
+- [x] Verify the production alias, deployed commit, build status, and runtime errors.
 - [ ] Delete stale merged feature branches so the repository keeps only current work.
