@@ -31,5 +31,5 @@
 - [x] Add regression tests for the restored stylesheet.
 - [x] Run the full test and production-build checks.
 - [x] Perform an authenticated visual/static smoke test of the practice route.
-- [ ] Publish a preview pull request and verify its deployment.
+- [x] Publish a preview pull request and verify its deployment.
 - [ ] Promote only after the repaired preview is visually verified.
