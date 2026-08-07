@@ -72,3 +72,28 @@ test('calculator stays math-only, preserves its iframe, and supports keyboard re
   assert.ok(app.includes("event.key === 'End'"));
   assert.ok(app.includes("aria-orientation"));
 });
+
+test('practice ships its complete base stylesheet instead of deployment-only refinements', async () => {
+  const css = await readFile(new URL('../app/practice/practice.css', import.meta.url), 'utf8');
+  const requiredRules = [
+    '.app-shell',
+    '.topbar',
+    '.workspace',
+    '.question-toolbar',
+    '.question-panel',
+    '.answer-column',
+    '.answer-card',
+    '.choice-select',
+    '.question-grid',
+    '.timer-ring circle',
+  ];
+  assert.ok(css.length >= 20_000);
+  for (const rule of requiredRules) assert.ok(css.includes(rule), `missing ${rule}`);
+  assert.match(css, /\.timer-ring circle\s*\{[^}]*fill:\s*none/s);
+});
+
+test('timer SVG remains bounded and transparent even before CSS loads', async () => {
+  const page = await readFile(new URL('../app/practice/page.js', import.meta.url), 'utf8');
+  assert.match(page, /<svg className="timer-ring" width="54" height="54"[^>]*fill="none"/);
+  assert.equal((page.match(/<circle[^>]*fill="none"/g) ?? []).length, 2);
+});
