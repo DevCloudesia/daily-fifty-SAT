@@ -1,5 +1,6 @@
 import { INDEX_URL, PLAN_VERSION, buildCandidatePools, buildOrderedPlan, isValidSession, nextIncompleteIndex } from '/queue.js';
 import { gridInMatches } from '/answers.js';
+import { displayedChoice, selectChoice, submitChoice, touchAnswer } from '/answer-state.js';
 import { normalizeChoiceMarkup, normalizeMathMarkup } from '/notation.js';
 import { normalizeIds, startCloudSync } from '/cloud-sync.js';
 import { CALCULATOR_DEFAULT_RATIO, calculatorRatioFromPointer, clampCalculatorRatio } from '/calculator-layout.js';
@@ -268,6 +269,7 @@ function getAnswerState(id) {
   if (!state.answers[id]) {
     state.answers[id] = {
       selected: null,
+      submitted: null,
       input: '',
       crossed: [],
       checked: false,
@@ -494,13 +496,14 @@ function renderQuestion(question, item) {
 function renderChoices(question, answer) {
   elements.answerArea.replaceChildren();
   const locked = answer.revealed || answer.completed;
+  const shownSelection = displayedChoice(answer);
   for (const choice of question.choices) {
     const row = document.createElement('div');
     row.className = 'choice';
-    if (answer.selected === choice.id) row.classList.add('selected');
+    if (shownSelection === choice.id) row.classList.add('selected');
     if (answer.crossed.includes(choice.id)) row.classList.add('crossed');
     if (answer.revealed && choice.id === question.correctChoice) row.classList.add('correct');
-    if (answer.checked && answer.selected === choice.id && choice.id !== question.correctChoice) row.classList.add('incorrect');
+    if (answer.checked && shownSelection === choice.id && choice.id !== question.correctChoice) row.classList.add('incorrect');
 
     const select = document.createElement('button');
     select.type = 'button';
@@ -509,9 +512,7 @@ function renderChoices(question, answer) {
     select.setAttribute('aria-label', `Choose answer ${choice.letter}`);
     select.innerHTML = `<span class="choice-letter">${choice.letter}</span><span class="choice-content">${normalizeChoiceMarkup(choice.html)}</span>`;
     select.addEventListener('click', () => {
-      answer.selected = choice.id;
-      answer.checked = false;
-      answer.result = null;
+      selectChoice(answer, choice.id);
       saveSession();
       renderQuestion(question, currentItem());
     });
@@ -526,6 +527,7 @@ function renderChoices(question, answer) {
       const crossed = new Set(answer.crossed);
       crossed.has(choice.id) ? crossed.delete(choice.id) : crossed.add(choice.id);
       answer.crossed = [...crossed];
+      touchAnswer(answer);
       saveSession();
       renderQuestion(question, currentItem());
     });
@@ -546,6 +548,7 @@ function renderGridIn(question, answer) {
     answer.input = input.value;
     answer.checked = false;
     answer.result = null;
+    touchAnswer(answer);
     saveSession();
     syncButtons(question, answer);
   });
@@ -560,13 +563,13 @@ function checkAnswer() {
   if (question.responseType === 'grid-in') {
     if (!answer.input.trim()) return;
     answer.result = gridInMatches(answer.input, question.acceptedAnswers?.length ? question.acceptedAnswers : question.correctText);
+    answer.checked = true;
+    answer.revealed = true;
+    answer.deadline = null;
+    touchAnswer(answer);
   } else {
-    if (!answer.selected) return;
-    answer.result = answer.selected === question.correctChoice;
+    if (!submitChoice(answer, question.correctChoice)) return;
   }
-  answer.checked = true;
-  answer.revealed = true;
-  answer.deadline = null;
   stopTimer();
   if (answer.result) void celebrateCorrect();
   else void playOutcomeSound('incorrect');
@@ -583,6 +586,7 @@ function revealAnswer(reason) {
   answer.revealed = true;
   answer.timedOut = reason === 'timeout' || answer.timedOut;
   answer.deadline = null;
+  touchAnswer(answer);
   stopTimer();
   saveSession();
   renderQuestion(question, item);
@@ -596,6 +600,7 @@ function completeCurrentQuestion() {
   if (!answer.revealed || answer.completed) return;
   answer.completed = true;
   answer.completedAt = new Date().toISOString();
+  touchAnswer(answer);
   state.completed.add(item.id);
   writeJson(STORAGE.completed, [...state.completed]);
   playChime('complete');
@@ -890,9 +895,7 @@ function handleKeyboard(event) {
   if (/^[1-4]$/.test(event.key) && question.responseType === 'multiple-choice' && !answer.revealed && !answer.completed) {
     const choice = question.choices[Number(event.key) - 1];
     if (choice) {
-      answer.selected = choice.id;
-      answer.checked = false;
-      answer.result = null;
+      selectChoice(answer, choice.id);
       saveSession();
       renderQuestion(question, item);
     }
