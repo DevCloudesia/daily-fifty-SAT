@@ -698,6 +698,15 @@ input:focus-visible {
 .explanation-content {
   margin-top: 18px;
   color: #465166;
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+.explanation-content,
+.explanation-content p,
+.explanation-content li,
+.explanation-content td,
+.explanation-content th {
+  font-family: Georgia, "Times New Roman", serif;
 }
 
 .navigator {
