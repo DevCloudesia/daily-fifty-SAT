@@ -6,7 +6,7 @@ A focused SAT practice app that generates one daily set of 50 questions:
 - 5 Words in Context questions
 - 20 hard Math questions
 - a 60-second timer with overtime tracking
-- permanent no-repeat question history
+- permanent no-repeat history from the moment a question is shown
 - shared phone and computer progress through Supabase
 
 Production: https://daily-fifty.vercel.app
@@ -87,7 +87,7 @@ This refreshes `public/practice-app.js`, `public/queue.js`, `public/answers.js`,
 
 - `app/`: Next.js pages and server routes
 - `public/`: browser-side practice, queue, and answer logic
-- `scripts/`: production source snapshot and no-repeat patching
+- `scripts/`: production source validation and snapshot utilities
 - `supabase/functions/`: Edge Functions, with secrets read from environment variables
 - `supabase/migrations/`: normalized progress schema
 
@@ -126,7 +126,7 @@ history each time.
 
 ## Progress model
 
-Completed question IDs are permanently stored in `daily_fifty_question_history`. Daily plans and per-question answer state are stored in normalized date-based tables. The sync function merges device progress without allowing a newer empty session to erase a richer unfinished session.
+Completed question IDs are permanently stored in `daily_fifty_question_history`. Seen question IDs are kept in the canonical append-only sync payload, so a question that appears on one device is excluded from future plans on every device. Daily plans and per-question answer state are stored in normalized date-based tables. The sync function merges device progress without allowing a newer empty session to erase a richer unfinished session or reloading the practice page.
 
 ## Canonical production assets
 
@@ -139,3 +139,29 @@ npm run snapshot
 ```
 
 Review the resulting diff before committing. The real `DAILY_FIFTY_SYNC_KEY` remains only in Vercel and Supabase environment settings.
+
+## SAT Question Bank access
+
+The browser does not scrape individual pages from `satquestionbank.org`. It requests this app's
+same-origin routes, and those routes use three upstream sources:
+
+- `/api/index` downloads the main static ID buckets from
+  `https://daily-fifty-fast-index.vercel.app/question-index.json`.
+- `/api/index` also downloads one public SAT Question Bank set at
+  `https://satquestionbank.org/start/353d15a80c6` and extracts its eight-character question IDs
+  to identify the Words in Context pool.
+- `/api/question?id=...` proxies the actual normalized question payload from
+  `https://daily-fifty-api.vercel.app/api/question?id=...`. Each returned question includes its
+  public `https://satquestionbank.org/question/<id>` source URL for attribution.
+
+The source code for the two `daily-fifty-*.vercel.app` upstream services is not present in this
+repository, so their collection process cannot be audited or changed here. This app only
+consumes their JSON output and the public vocabulary-set HTML described above.
+
+## Desmos calculator
+
+Math questions expose a rounded **Desmos Calculator** control between Previous and Skip. It
+loads the official College Board testing calculator only after the first click, keeps the iframe
+mounted while navigating so calculator work is preserved, and hides the control on Reading and
+Writing questions. The divider supports pointer dragging plus arrow, Home, and End keys. On
+narrow screens the split stacks vertically so both the question and calculator remain usable.

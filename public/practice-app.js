@@ -1,13 +1,16 @@
 import { INDEX_URL, PLAN_VERSION, buildCandidatePools, buildOrderedPlan, isValidSession, nextIncompleteIndex } from '/queue.js';
 import { gridInMatches } from '/answers.js';
+import { normalizeChoiceMarkup, normalizeMathMarkup } from '/notation.js';
+import { normalizeIds, startCloudSync } from '/cloud-sync.js';
+import { CALCULATOR_DEFAULT_RATIO, calculatorRatioFromPointer, clampCalculatorRatio } from '/calculator-layout.js';
 
 const API_URL = '/api/question';
 const PREFETCH_PREFIX = 'dailyFifty.prefetchedQuestion.';
 const TIMER_SECONDS = 60;
-const MATHML_NS = 'http://www.w3.org/1998/Math/MathML';
 const STORAGE = Object.freeze({
   completed: 'dailyFifty.completed.v4',
   blocked: 'dailyFifty.blocked.v4',
+  seen: 'dailyFifty.seen.v1',
   session: 'dailyFifty.session.v4',
   preferences: 'dailyFifty.preferences.v4',
 });
@@ -59,7 +62,9 @@ const state = {
   questionCache: new Map(),
   completed: new Set(),
   blocked: new Set(),
+  seen: new Set(),
   loadingQuestion: false,
+  hasRenderedQuestion: false,
   loadController: null,
   loadSequence: 0,
   startSequence: 0,
@@ -70,6 +75,7 @@ const state = {
   alertAudio: { context: null, gain: null },
   celebrationCounter: 0,
   music: { enabled: false, context: null, gain: null, interval: null, step: 0, trackIndex: 0 },
+  calculator: { open: false, loaded: false, ratio: CALCULATOR_DEFAULT_RATIO, dragging: false },
   toastTimer: null,
 };
 const elements = {};
@@ -115,7 +121,8 @@ function migrateLegacyStorage() {
 function cacheElements() {
   const ids = [
     'progressLabel','mixLabel','progressBar','musicButton','musicLabel','focusButton','subjectBadge','difficultyBadge','skillLabel',
-    'timerRing','timerText','questionCard','previousButton','skipButton','answerArea','feedback','questionCounter','checkButton',
+    'timerRing','timerText','questionStage','questionCard','previousButton','calculatorButton','skipButton','calculatorPane',
+    'calculatorDivider','closeCalculator','desmosFrame','answerArea','feedback','questionCounter','checkButton',
     'revealButton','completeButton','explanationCard','explanationContent','collapseExplanation','questionNavigator','loadingOverlay',
     'loadingMessage','errorOverlay','errorMessage','retryButton','toast',
   ];
@@ -133,6 +140,10 @@ function bindEvents() {
   elements.musicButton.addEventListener('click', toggleMusic);
   elements.focusButton.addEventListener('click', toggleFullscreen);
   elements.previousButton.addEventListener('click', () => navigateRelative(-1));
+  elements.calculatorButton.addEventListener('click', toggleCalculator);
+  elements.closeCalculator.addEventListener('click', () => setCalculatorOpen(false));
+  elements.calculatorDivider.addEventListener('pointerdown', startCalculatorResize);
+  elements.calculatorDivider.addEventListener('keydown', handleCalculatorResizeKey);
   elements.skipButton.addEventListener('click', () => navigateRelative(1));
   elements.checkButton.addEventListener('click', checkAnswer);
   elements.revealButton.addEventListener('click', () => revealAnswer('manual'));
@@ -144,8 +155,10 @@ function bindEvents() {
   document.addEventListener('pointerdown', primeAudio, { once: true });
   document.addEventListener('keydown', primeAudio, { once: true });
   document.addEventListener('visibilitychange', () => { if (document.hidden) saveSession(); });
+  document.addEventListener('dailyfifty:cloud-progress', (event) => { void applyCloudProgress(event.detail); });
   window.addEventListener('beforeunload', saveSession);
   document.addEventListener('fullscreenchange', () => elements.focusButton.setAttribute('aria-pressed', String(Boolean(document.fullscreenElement))));
+  window.addEventListener('resize', syncCalculatorOrientation);
 }
 
 async function init() {
@@ -154,10 +167,12 @@ async function init() {
     state.date = localDate();
     state.completed = new Set(readIdArray(STORAGE.completed));
     state.blocked = new Set(readIdArray(STORAGE.blocked));
+    state.seen = new Set(readIdArray(STORAGE.seen));
     cacheElements();
     bindEvents();
     restorePreferences();
     await start(false);
+    startCloudSync();
   } catch (error) {
     console.error(error);
     showError(error instanceof Error ? error.message : String(error));
@@ -203,7 +218,8 @@ function rotateDailyBuckets(buckets,date){
 
 async function createPlan() {
   const buckets = await fetchIndex();
-  return buildOrderedPlan(rotateDailyBuckets(buckets, state.date), { completed: [...state.completed], blocked: [...state.blocked] });
+  const excluded = [...new Set([...state.completed, ...state.seen])];
+  return buildOrderedPlan(rotateDailyBuckets(buckets, state.date), { completed: excluded, blocked: [...state.blocked] });
 }
 
 async function start(forceNew) {
@@ -229,6 +245,7 @@ async function start(forceNew) {
     saveSession();
   }
 
+  await repairExcludedQuestions();
   renderNavigator();
   updateProgress();
   await loadCurrentQuestion();
@@ -261,6 +278,8 @@ function getAnswerState(id) {
       remaining: TIMER_SECONDS,
       overtimeSeconds: 0,
       deadline: null,
+      seenAt: null,
+      savedAt: null,
     };
   }
   return state.answers[id];
@@ -301,7 +320,9 @@ async function loadCurrentQuestion(attempt = 0) {
   state.loadController = controller;
   renderQuestionSkeleton(item);
   setLoadingQuote(state.index);
-  const loadingDelay = window.setTimeout(() => elements.loadingOverlay.classList.remove('hidden'), 450);
+  const loadingDelay = state.hasRenderedQuestion
+    ? null
+    : window.setTimeout(() => elements.loadingOverlay.classList.remove('hidden'), 700);
 
   try {
     let question = state.questionCache.get(item.id) || readPrefetchedQuestion(item.id);
@@ -310,16 +331,18 @@ async function loadCurrentQuestion(attempt = 0) {
       state.questionCache.set(item.id, question);
     }
     if (sequence !== state.loadSequence) return;
+    markQuestionSeen(item);
     renderQuestion(question, item);
-    window.clearTimeout(loadingDelay);
+    if (loadingDelay) window.clearTimeout(loadingDelay);
     hideLoading();
     state.loadingQuestion = false;
+    state.hasRenderedQuestion = true;
     startTimerForCurrent();
     rotateMusicForQuestion();
     void preloadNextQuestion();
     saveSession();
   } catch (error) {
-    window.clearTimeout(loadingDelay);
+    if (loadingDelay) window.clearTimeout(loadingDelay);
     hideLoading();
     if (error?.name === 'AbortError') return;
     state.blocked.add(item.id);
@@ -337,12 +360,12 @@ async function replaceCurrentQuestion(failedItem) {
   let candidate = null;
   while (reserve.length && !candidate) {
     const next = reserve.shift();
-    if (next && !used.has(next.id) && !state.completed.has(next.id) && !state.blocked.has(next.id)) candidate = next;
+    if (next && !used.has(next.id) && !state.completed.has(next.id) && !state.blocked.has(next.id) && !state.seen.has(next.id)) candidate = next;
   }
 
   if (!candidate) {
     const pools = buildCandidatePools(await fetchIndex());
-    candidate = (pools[failedItem.bucket] || []).find((item) => !used.has(item.id) && !state.completed.has(item.id) && !state.blocked.has(item.id)) || null;
+    candidate = (pools[failedItem.bucket] || []).find((item) => !used.has(item.id) && !state.completed.has(item.id) && !state.blocked.has(item.id) && !state.seen.has(item.id)) || null;
   }
   if (!candidate) return false;
 
@@ -352,6 +375,94 @@ async function replaceCurrentQuestion(failedItem) {
   saveSession();
   showToast('A malformed question was replaced automatically.');
   return true;
+}
+
+function hasQuestionWork(answer) {
+  if (!answer || typeof answer !== 'object') return false;
+  return Boolean(
+    answer.seenAt || answer.selected || String(answer.input || '').trim() || answer.checked ||
+    answer.revealed || answer.completedAt || (answer.result !== null && answer.result !== undefined)
+  );
+}
+
+function markQuestionSeen(item) {
+  const answer = getAnswerState(item.id);
+  const now = new Date().toISOString();
+  if (!answer.seenAt) answer.seenAt = now;
+  answer.savedAt = now;
+  if (!state.seen.has(item.id)) {
+    state.seen.add(item.id);
+    writeJson(STORAGE.seen, [...state.seen]);
+  }
+}
+
+async function repairExcludedQuestions() {
+  if (state.plan.length !== 50) return 0;
+  const stale = state.plan
+    .map((item, index) => ({ item, index }))
+    .filter(({ item }) => (state.completed.has(item.id) || state.seen.has(item.id)) && !hasQuestionWork(state.answers[item.id]));
+  if (!stale.length) return 0;
+
+  const pools = buildCandidatePools(await fetchIndex());
+  const used = new Set(state.plan.map((item) => item.id));
+  let replacements = 0;
+  for (const { item, index } of stale) {
+    const reserve = Array.isArray(state.reserve[item.bucket]) ? state.reserve[item.bucket] : [];
+    let candidate = null;
+    while (reserve.length && !candidate) {
+      const next = reserve.shift();
+      if (next && !used.has(next.id) && !state.completed.has(next.id) && !state.blocked.has(next.id) && !state.seen.has(next.id)) candidate = next;
+    }
+    if (!candidate) {
+      candidate = (pools[item.bucket] || []).find((next) =>
+        !used.has(next.id) && !state.completed.has(next.id) && !state.blocked.has(next.id) && !state.seen.has(next.id)
+      ) || null;
+    }
+    state.reserve[item.bucket] = reserve;
+    if (!candidate) continue;
+    used.delete(item.id);
+    used.add(candidate.id);
+    state.plan[index] = candidate;
+    delete state.answers[item.id];
+    replacements += 1;
+  }
+  if (replacements) saveSession();
+  return replacements;
+}
+
+async function applyCloudProgress(payload) {
+  if (!payload || typeof payload !== 'object') return;
+  state.loadController?.abort();
+  state.loadingQuestion = false;
+  state.loadSequence += 1;
+  const currentId = currentItem()?.id || null;
+  state.completed = new Set(normalizeIds(payload.completed));
+  state.blocked = new Set(normalizeIds(payload.blocked));
+  state.seen = new Set(normalizeIds(payload.seen));
+
+  const remoteSession = payload.session;
+  if (isValidSession(remoteSession, state.date)) {
+    state.plan = remoteSession.plan;
+    state.reserve = remoteSession.reserve || {};
+    state.answers = remoteSession.answers || {};
+    const currentIndex = currentId ? state.plan.findIndex((item) => item.id === currentId) : -1;
+    state.index = currentIndex >= 0 ? currentIndex : Math.min(49, Math.max(0, Number(remoteSession.index) || 0));
+  }
+
+  await repairExcludedQuestions();
+  saveSession();
+  renderNavigator();
+  updateProgress();
+  const item = currentItem();
+  if (!item) return;
+  const question = state.questionCache.get(item.id);
+  if (question) {
+    stopTimer();
+    renderQuestion(question, item);
+    startTimerForCurrent();
+  } else if (!state.loadingQuestion) {
+    await loadCurrentQuestion();
+  }
 }
 
 function renderQuestionSkeleton(item) {
@@ -364,129 +475,6 @@ function renderQuestionSkeleton(item) {
   elements.revealButton.disabled = true;
   updateHeader(item);
   updateNavigator();
-}
-
-function normalizeMathMarkupCore(html) {
-  const template = document.createElement('template');
-  template.innerHTML = String(html || '');
-  for (const fenced of template.content.querySelectorAll('mfenced')) {
-    const row = document.createElementNS(MATHML_NS, 'mrow');
-    const open = fenced.getAttribute('open') ?? '(';
-    const close = fenced.getAttribute('close') ?? ')';
-    const separators = (fenced.getAttribute('separators') || ',').replace(/\s+/g, '') || ',';
-    const children = [...fenced.childNodes].filter((child) => child.nodeType !== Node.TEXT_NODE || child.textContent.trim() !== '');
-    if (open) {
-      const left = document.createElementNS(MATHML_NS, 'mo');
-      left.setAttribute('fence', 'true');
-      left.setAttribute('stretchy', 'false');
-      left.textContent = open;
-      row.appendChild(left);
-    }
-    children.forEach((child, index) => {
-      if (index > 0) {
-        const separator = document.createElementNS(MATHML_NS, 'mo');
-        separator.setAttribute('separator', 'true');
-        separator.textContent = separators[Math.min(index - 1, separators.length - 1)] || ',';
-        row.appendChild(separator);
-      }
-      row.appendChild(child);
-    });
-    if (close) {
-      const right = document.createElementNS(MATHML_NS, 'mo');
-      right.setAttribute('fence', 'true');
-      right.setAttribute('stretchy', 'false');
-      right.textContent = close;
-      row.appendChild(right);
-    }
-    fenced.replaceWith(row);
-  }
-  return template.innerHTML;
-}
-
-// Daily Fifty global spoken-label normalization v6.1.15.
-const DAILY_FIFTY_SPOKEN_SYMBOLS = new Map([
-  ['blank', ''], ['comma', ','], ['period', '.'], ['full stop', '.'],
-  ['semicolon', ';'], ['colon', ':'], ['question mark', '?'],
-  ['exclamation point', '!'], ['exclamation mark', '!'], ['apostrophe', "'"],
-  ['quotation mark', '"'], ['double quote', '"'], ['single quote', "'"],
-  ['open parenthesis', '('], ['left parenthesis', '('],
-  ['close parenthesis', ')'], ['right parenthesis', ')'],
-  ['open bracket', '['], ['left bracket', '['], ['close bracket', ']'], ['right bracket', ']'],
-  ['open brace', '{'], ['left brace', '{'], ['close brace', '}'], ['right brace', '}'],
-  ['slash', '/'], ['backslash', '\\'], ['hyphen', '-'], ['dash', '—'],
-  ['en dash', '–'], ['em dash', '—'], ['ellipsis', '…'], ['plus sign', '+'],
-  ['minus sign', '−'], ['equals sign', '='], ['less than sign', '<'],
-  ['greater than sign', '>'], ['percent sign', '%'], ['ampersand', '&'],
-  ['at sign', '@'], ['number sign', '#'], ['dollar sign', '$'],
-  ['degree sign', '°'], ['multiplication sign', '×'], ['division sign', '÷']
-]);
-
-function dailyFiftyIsAccessibilityOnly(node) {
-  if (!(node instanceof Element)) return false;
-  const className = String(node.getAttribute('class') || '').toLowerCase();
-  const style = String(node.getAttribute('style') || '').toLowerCase();
-  const testId = String(node.getAttribute('data-testid') || '').toLowerCase();
-  return className.includes('sr-only') || className.includes('screen-reader') ||
-    className.includes('visually-hidden') || style.includes('clip:') ||
-    style.includes('clip-path:') || testId.includes('screen-reader') ||
-    testId.includes('sr-only') || node.getAttribute('data-sr-only') === 'true';
-}
-
-function dailyFiftyVisibleSymbolNode(node) {
-  let previous = node.previousSibling;
-  while (previous && previous.nodeType === Node.TEXT_NODE && !String(previous.textContent || '').trim()) previous = previous.previousSibling;
-  return previous instanceof Element ? previous : null;
-}
-
-function normalizeMathMarkup(html) {
-  const template = document.createElement('template');
-  template.innerHTML = normalizeMathMarkupCore(html);
-
-  for (const node of [...template.content.querySelectorAll('span, i, b, em, strong')]) {
-    const label = String(node.textContent || '').trim().toLowerCase().replace(/[.:;!?]+$/, '');
-    if (!DAILY_FIFTY_SPOKEN_SYMBOLS.has(label)) continue;
-    const visible = dailyFiftyVisibleSymbolNode(node);
-    const expectedSymbol = DAILY_FIFTY_SPOKEN_SYMBOLS.get(label);
-    const visibleText = String(visible?.textContent || '').trim();
-    const pairedWithSymbol = Boolean(visible) && (
-      visible.getAttribute('aria-hidden') === 'true' || /^_+$/.test(visibleText) ||
-      visibleText === expectedSymbol || (expectedSymbol === '' && /^_{2,}$/.test(visibleText))
-    );
-    if (dailyFiftyIsAccessibilityOnly(node) || pairedWithSymbol) {
-      if (visible) {
-        visible.removeAttribute('aria-hidden');
-        if (!visible.getAttribute('aria-label')) visible.setAttribute('aria-label', label);
-      }
-      node.remove();
-    }
-  }
-
-  const accessibilityOnly = [
-    '.sr-only', '.visually-hidden', '.screen-reader-only', '.screen-reader-text',
-    '[class*="sr-only"]', '[class*="visually-hidden"]', '[class*="screen-reader"]', '[data-sr-only="true"]'
-  ].join(',');
-  for (const node of [...template.content.querySelectorAll(accessibilityOnly)]) {
-    const visible = dailyFiftyVisibleSymbolNode(node);
-    const label = String(node.textContent || '').trim();
-    if (visible && label) {
-      visible.removeAttribute('aria-hidden');
-      if (!visible.getAttribute('aria-label')) visible.setAttribute('aria-label', label);
-    }
-    node.remove();
-  }
-  return template.innerHTML;
-}
-
-function normalizeChoiceMarkup(html) {
-  const normalized = normalizeMathMarkup(html);
-  const template = document.createElement('template');
-  template.innerHTML = normalized;
-  const text = String(template.content.textContent || '').trim().toLowerCase().replace(/[.:;!?]+$/, '');
-  if (DAILY_FIFTY_SPOKEN_SYMBOLS.has(text) && text !== 'blank') {
-    const symbol = DAILY_FIFTY_SPOKEN_SYMBOLS.get(text);
-    return '<span class="df-punctuation-choice" aria-label="' + text + '">' + symbol + '</span>';
-  }
-  return normalized;
 }
 
 function renderQuestion(question, item) {
@@ -715,6 +703,105 @@ function updateHeader(item) {
   elements.difficultyBadge.className = `badge badge-${item.difficulty.toLowerCase()}`;
   elements.difficultyBadge.textContent = item.difficulty;
   elements.questionCounter.textContent = `${state.index + 1} / 50`;
+  syncCalculator(item);
+}
+
+function isCalculatorStacked() {
+  return window.matchMedia?.('(max-width: 820px)').matches ?? false;
+}
+
+function savePreferences() {
+  writeJson(STORAGE.preferences, {
+    musicEnabled: state.music.enabled,
+    calculatorOpen: state.calculator.open,
+    calculatorRatio: state.calculator.ratio,
+  });
+}
+
+function syncCalculatorOrientation() {
+  const stacked = isCalculatorStacked();
+  elements.calculatorDivider.setAttribute('aria-orientation', stacked ? 'horizontal' : 'vertical');
+}
+
+function syncCalculator(item = currentItem()) {
+  const isMath = item?.subject === 'Math';
+  const active = isMath && state.calculator.open;
+  elements.calculatorButton.classList.toggle('hidden', !isMath);
+  elements.calculatorButton.classList.toggle('active', active);
+  elements.calculatorButton.setAttribute('aria-expanded', String(active));
+  elements.calculatorButton.textContent = active ? 'Hide Desmos Calculator' : 'Desmos Calculator';
+  elements.questionStage.classList.toggle('calculator-open', active);
+  elements.calculatorPane.classList.toggle('hidden', !active);
+  elements.calculatorDivider.classList.toggle('hidden', !active);
+  elements.questionStage.style.setProperty('--question-pane', `${state.calculator.ratio}%`);
+  elements.calculatorDivider.setAttribute('aria-valuenow', String(Math.round(state.calculator.ratio)));
+  syncCalculatorOrientation();
+  if (active && !state.calculator.loaded) {
+    const source = elements.desmosFrame.dataset.src;
+    if (source) elements.desmosFrame.src = source;
+    state.calculator.loaded = true;
+  }
+}
+
+function setCalculatorOpen(open) {
+  state.calculator.open = Boolean(open);
+  syncCalculator();
+  savePreferences();
+  if (state.calculator.open && currentItem()?.subject === 'Math') {
+    window.setTimeout(() => elements.calculatorPane.focus?.({ preventScroll: true }), 0);
+  } else {
+    elements.calculatorButton.focus?.({ preventScroll: true });
+  }
+}
+
+function toggleCalculator() {
+  if (currentItem()?.subject !== 'Math') return;
+  setCalculatorOpen(!state.calculator.open);
+}
+
+function applyCalculatorRatio(ratio) {
+  state.calculator.ratio = clampCalculatorRatio(ratio);
+  elements.questionStage.style.setProperty('--question-pane', `${state.calculator.ratio}%`);
+  elements.calculatorDivider.setAttribute('aria-valuenow', String(Math.round(state.calculator.ratio)));
+}
+
+function startCalculatorResize(event) {
+  if (event.button !== 0) return;
+  event.preventDefault();
+  state.calculator.dragging = true;
+  elements.questionStage.classList.add('calculator-resizing');
+  elements.calculatorDivider.setPointerCapture?.(event.pointerId);
+  const move = (moveEvent) => {
+    if (!state.calculator.dragging) return;
+    applyCalculatorRatio(calculatorRatioFromPointer(moveEvent, elements.questionStage.getBoundingClientRect(), isCalculatorStacked()));
+  };
+  const stop = () => {
+    state.calculator.dragging = false;
+    elements.questionStage.classList.remove('calculator-resizing');
+    elements.calculatorDivider.removeEventListener('pointermove', move);
+    elements.calculatorDivider.removeEventListener('pointerup', stop);
+    elements.calculatorDivider.removeEventListener('pointercancel', stop);
+    savePreferences();
+  };
+  elements.calculatorDivider.addEventListener('pointermove', move);
+  elements.calculatorDivider.addEventListener('pointerup', stop);
+  elements.calculatorDivider.addEventListener('pointercancel', stop);
+  move(event);
+}
+
+function handleCalculatorResizeKey(event) {
+  const stacked = isCalculatorStacked();
+  const decrease = stacked ? 'ArrowUp' : 'ArrowLeft';
+  const increase = stacked ? 'ArrowDown' : 'ArrowRight';
+  let next = null;
+  if (event.key === decrease) next = state.calculator.ratio - 2;
+  else if (event.key === increase) next = state.calculator.ratio + 2;
+  else if (event.key === 'Home') next = 30;
+  else if (event.key === 'End') next = 70;
+  if (next === null) return;
+  event.preventDefault();
+  applyCalculatorRatio(next);
+  savePreferences();
 }
 
 function updateProgress() {
@@ -819,12 +906,14 @@ function handleKeyboard(event) {
 function restorePreferences() {
   const preferences = readJson(STORAGE.preferences, {});
   state.music.enabled = Boolean(preferences.musicEnabled);
+  state.calculator.open = Boolean(preferences.calculatorOpen);
+  state.calculator.ratio = clampCalculatorRatio(preferences.calculatorRatio);
   updateMusicButton();
 }
 
 async function toggleMusic() {
   state.music.enabled = !state.music.enabled;
-  writeJson(STORAGE.preferences, { musicEnabled: state.music.enabled });
+  savePreferences();
   if (state.music.enabled) await startMusic();
   else stopMusic();
   updateMusicButton();
@@ -1032,10 +1121,9 @@ function showToast(message, duration = 2800) {
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => void init(), { once: true });
 else void init();
-// Daily Fifty single-user cloud sync.
-(()=>{const U='/api/sync',S={completed:'dailyFifty.completed.v4',blocked:'dailyFifty.blocked.v4',session:'dailyFifty.session.v4',preferences:'dailyFifty.preferences.v4',syncedAt:'dailyFifty.syncUpdated.v1'};let running=false,timer=null;const read=(k,f)=>{try{const r=localStorage.getItem(k);return r?JSON.parse(r):f}catch{return f}},write=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));return true}catch{return false}},answerScore=a=>!a||typeof a!=='object'?0:Number(Boolean(a.selected||String(a.input||'').trim()))+Number(Boolean(a.checked))*4+Number(Boolean(a.revealed))*2+Number(Boolean(a.completed))*8+Number(a.result!==null&&a.result!==undefined),sessionScore=s=>Object.values(s?.answers&&typeof s.answers==='object'?s.answers:{}).reduce((n,a)=>n+answerScore(a),0),sessionDone=s=>Object.values(s?.answers&&typeof s.answers==='object'?s.answers:{}).filter(a=>a?.checked||a?.completed).length,validPlan=s=>Array.isArray(s?.plan)&&s.plan.length===50,snapshot=()=>({completed:read(S.completed,[]),blocked:read(S.blocked,[]),session:read(S.session,{}),preferences:read(S.preferences,{}),updatedAt:localStorage.getItem(S.syncedAt)||new Date(0).toISOString()}),stable=v=>JSON.stringify(v||null),sessionBetter=(r,l)=>{const rv=validPlan(r),lv=validPlan(l);if(rv!==lv)return rv;const rs=sessionScore(r),ls=sessionScore(l),rd=String(r?.date||''),ld=String(l?.date||'');if(rd!==ld){if(rs>0&&ls===0)return true;if(ls>0&&rs===0)return false;if(rs!==ls)return rs>ls;const rc=sessionDone(r),lc=sessionDone(l);if(rc!==lc)return rc>lc;return rd>ld}if(rs!==ls)return rs>ls;const rc=sessionDone(r),lc=sessionDone(l);if(rc!==lc)return rc>lc;return stable(r)!==stable(l)},toast=m=>{const e=document.getElementById('toast');if(!e)return;e.textContent=m;e.classList.remove('hidden');setTimeout(()=>e.classList.add('hidden'),3400)},apply=(r,l)=>{if(!r||typeof r!=='object')return;const c=Array.isArray(r.completed)?r.completed:[],b=Array.isArray(r.blocked)?r.blocked:[],cc=stable(c)!==stable(l.completed||[]),bc=stable(b)!==stable(l.blocked||[]),use=r.session&&typeof r.session==='object'&&sessionBetter(r.session,l.session),sc=use&&stable(r.session)!==stable(l.session);write(S.completed,c);write(S.blocked,b);write(S.preferences,r.preferences&&typeof r.preferences==='object'?r.preferences:{});if(use)write(S.session,r.session);try{localStorage.setItem(S.syncedAt,r.updatedAt||new Date().toISOString())}catch{}if(sc||cc||bc){try{sessionStorage.setItem('dailyFifty.showSyncedToast','1')}catch{}location.reload()}},sync=async()=>{if(running||document.visibilityState==='hidden')return;running=true;const l=snapshot();try{const r=await fetch(U,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({payload:l}),cache:'no-store',keepalive:true});if(!r.ok)throw new Error(`Sync returned ${r.status}.`);const d=await r.json();if(d?.ok)apply(d.payload,l)}catch(e){console.warn('Daily Fifty cloud sync is temporarily unavailable.',e)}finally{running=false}},schedule=(d=500)=>{if(timer)clearTimeout(timer);timer=setTimeout(()=>void sync(),d)};addEventListener('focus',()=>schedule(80));document.addEventListener('visibilitychange',()=>document.visibilityState==='visible'?schedule(80):void sync());addEventListener('pagehide',()=>void sync());setInterval(()=>void sync(),5000);const start=()=>{try{if(sessionStorage.getItem('dailyFifty.showSyncedToast')==='1'){sessionStorage.removeItem('dailyFifty.showSyncedToast');setTimeout(()=>toast('Progress merged from the shared database.'),650)}}catch{}schedule(250)};document.readyState==='loading'?document.addEventListener('DOMContentLoaded',start,{once:true}):start()})();
-// Daily Fifty retired-question migration.
-(()=>{
+// Legacy migration is intentionally inert. No-repeat repair now runs inside the live state
+// machine, which avoids writing a stale snapshot and reloading the page underneath the user.
+if (false) (()=>{
   const KEYS={session:'dailyFifty.session.v4',completed:'dailyFifty.completed.v4',blocked:'dailyFifty.blocked.v4'};
   const read=(key,fallback)=>{try{const raw=localStorage.getItem(key);return raw?JSON.parse(raw):fallback}catch{return fallback}};
   const validId=id=>/^[0-9a-f]{8}$/i.test(String(id||''));
@@ -1133,7 +1221,7 @@ else void init();
     const replaced=applyRepair(payload);
     if(!replaced)return;
     sessionStorage.setItem('dailyFifty.retiredRepairNotice',String(replaced));
-    location.reload();
+    document.dispatchEvent(new CustomEvent('dailyfifty:legacy-repair'));
   }
   const showNotice=()=>{
     let count=0;try{count=Number(sessionStorage.getItem('dailyFifty.retiredRepairNotice')||0);sessionStorage.removeItem('dailyFifty.retiredRepairNotice')}catch{}

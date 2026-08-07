@@ -406,6 +406,10 @@ Deno.serve(async (req: Request) => {
     const merged = {
       completed: cleanIds(completedRows.map((row) => row.question_id)),
       blocked: cleanIds([...(cached.blocked || []), ...(local.blocked || [])]),
+      // Seen questions are retired from future plans even when the user skipped them. Keeping
+      // this append-only list in the canonical sync payload makes no-repeat behavior consistent
+      // across devices without conflating "viewed" with "completed" progress.
+      seen: cleanIds([...(cached.seen || []), ...(local.seen || [])]),
       session: canonicalSession,
       preferences: choosePreferences(cached.preferences, local.preferences, cached.updatedAt, local.updatedAt),
       // A read-only call must return a stable updatedAt when nothing actually changed. Stamping
