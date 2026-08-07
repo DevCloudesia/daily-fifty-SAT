@@ -10,6 +10,16 @@ if (!files.length) {
 
 let totalBytes = 0;
 let homepageStylesFound = false;
+let practiceStylesFound = false;
+
+const requiredPracticeRules = [
+  '.app-shell',
+  '.workspace',
+  '.question-panel',
+  '.answer-column',
+  '.choice-select',
+  '.timer-ring circle',
+];
 
 for (const name of files) {
   const path = join(cssDir, name);
@@ -24,6 +34,10 @@ for (const name of files) {
   ) {
     homepageStylesFound = true;
   }
+
+  if (requiredPracticeRules.every((rule) => content.includes(rule)) && content.includes('fill:none')) {
+    practiceStylesFound = true;
+  }
 }
 
 if (totalBytes < 1000) {
@@ -34,4 +48,8 @@ if (!homepageStylesFound) {
   throw new Error('Homepage styles are missing from the built CSS bundles.');
 }
 
-console.log(`Verified ${files.length} CSS bundle(s), ${totalBytes} total bytes, with homepage styles present.`);
+if (!practiceStylesFound) {
+  throw new Error('Complete practice styles or the timer SVG fill guard are missing from the built CSS bundles.');
+}
+
+console.log(`Verified ${files.length} CSS bundle(s), ${totalBytes} total bytes, with homepage and practice styles present.`);
