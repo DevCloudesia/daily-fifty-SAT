@@ -33,3 +33,12 @@
 - [x] Perform an authenticated visual/static smoke test of the practice route.
 - [x] Publish a preview pull request and verify its deployment.
 - [ ] Promote only after the repaired preview is visually verified.
+
+## Practice layout polish
+
+- [x] Keep Previous and Skip on opposite sides when the English calculator control is hidden.
+- [x] Let the top bar and answer card scroll away so they never cover the explanation.
+- [x] Give long answer choices a calmer text treatment and more breathing room.
+- [x] Add regression coverage for navigation placement and non-sticky explanation behavior.
+- [x] Run tests and the production build.
+- [ ] Publish and verify a Vercel preview before production.
