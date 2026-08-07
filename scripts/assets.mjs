@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 
 const required = [
   'public/practice-app.js',
+  'public/answer-state.js',
   'public/notation.js',
   'public/cloud-sync.js',
   'public/calculator-layout.js',
@@ -31,6 +32,9 @@ if (app.includes('Progress merged') || sync.includes('Progress merged')) {
 }
 if (!app.includes("from '/calculator-layout.js'") || !app.includes('syncCalculator(item)')) {
   throw new Error('The math-only Desmos split layout is missing.');
+}
+if (!app.includes("from '/answer-state.js'") || !app.includes('submitChoice(answer, question.correctChoice)')) {
+  throw new Error('Answer submission integrity helpers are missing.');
 }
 const requiredPracticeRules = [
   '.app-shell',
