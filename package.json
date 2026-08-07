@@ -8,7 +8,7 @@
     "build": "node scripts/assets.mjs && node scripts/restore-home-css.mjs && next build && node scripts/verify-css-build.mjs",
     "test": "node --test",
     "start": "next start",
-    "snapshot": "node scripts/snapshot-production.mjs"
+    "snapshot:legacy": "node scripts/snapshot-production.mjs"
   },
   "dependencies": {
     "next": "15.5.20",
