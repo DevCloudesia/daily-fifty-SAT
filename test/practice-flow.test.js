@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { buildOrderedPlan } from '../public/queue.js';
-import { cloudChanges, sameIdSet } from '../public/cloud-sync.js';
+import { cloudChanges, sameIdSet, sessionChangedSinceRequest } from '../public/cloud-sync.js';
 import { calculatorRatioFromPointer, clampCalculatorRatio } from '../public/calculator-layout.js';
 
 const id = (number) => number.toString(16).padStart(8, '0');
@@ -33,6 +33,18 @@ test('an older sync response cannot erase local seen history during deployment',
   const changes = cloudChanges({ completed: [], blocked: [], session: {} }, local);
   assert.deepEqual(changes.seen, ['0000000a']);
   assert.equal(changes.changed, false);
+});
+
+test('an in-flight sync response cannot overwrite an answer chosen after the request began', () => {
+  const requestSnapshot = {
+    session: { answers: { abcdef12: { selected: 'choice-a', savedAt: '2026-08-07T20:00:00.000Z' } } },
+  };
+  const currentSnapshot = {
+    session: { answers: { abcdef12: { selected: 'choice-c', savedAt: '2026-08-07T20:00:01.000Z' } } },
+  };
+
+  assert.equal(sessionChangedSinceRequest(requestSnapshot, currentSnapshot), true);
+  assert.equal(sessionChangedSinceRequest(currentSnapshot, currentSnapshot), false);
 });
 
 test('practice navigation has no full-page refresh or routine merge toast', async () => {
@@ -134,4 +146,9 @@ test('desktop practice proportions keep the toolbar fixed and reserve more room 
   assert.match(css, /\.question-card\s*\{[^}]*height:\s*100%;[^}]*min-height:\s*390px;/s);
   assert.match(css, /@media \(max-width:\s*720px\)[\s\S]*?\.question-column\s*\{[^}]*grid-template-rows:\s*auto\s*minmax\(0,\s*1fr\);/s);
   assert.match(css, /@media \(max-width:\s*720px\)[\s\S]*?\.question-toolbar\s*\{[^}]*height:\s*auto;[^}]*min-height:\s*0;/s);
+});
+
+test('explanation text uses the same serif font as questions and choices', async () => {
+  const css = await readFile(new URL('../app/practice/practice.css', import.meta.url), 'utf8');
+  assert.match(css, /\.explanation-content,\s*\.explanation-content p,\s*\.explanation-content li,\s*\.explanation-content td,\s*\.explanation-content th\s*\{[^}]*font-family:\s*Georgia,/s);
 });
