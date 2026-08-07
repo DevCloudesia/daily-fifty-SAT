@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "node scripts/assets.mjs && next dev",
     "build": "node scripts/assets.mjs && node scripts/restore-home-css.mjs && next build && node scripts/verify-css-build.mjs",
+    "test": "node --test",
     "start": "next start",
     "snapshot": "node scripts/snapshot-production.mjs"
   },
@@ -13,5 +14,8 @@
     "next": "15.5.20",
     "react": "19.1.0",
     "react-dom": "19.1.0"
+  },
+  "devDependencies": {
+    "linkedom": "^0.18.13"
   }
 }

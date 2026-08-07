@@ -2,6 +2,9 @@ import { readFile } from 'node:fs/promises';
 
 const required = [
   'public/practice-app.js',
+  'public/notation.js',
+  'public/cloud-sync.js',
+  'public/calculator-layout.js',
   'public/queue.js',
   'public/answers.js',
   'app/practice/practice.css',
@@ -13,11 +16,19 @@ for (const path of required) {
 }
 
 const app = await readFile('public/practice-app.js', 'utf8');
-if (!app.includes('Daily Fifty global spoken-label normalization v6.1.15')) {
-  throw new Error('practice-app.js is not the final v6.1.15 production runtime.');
+const notation = await readFile('public/notation.js', 'utf8');
+const sync = await readFile('public/cloud-sync.js', 'utf8');
+if (!app.includes("from '/notation.js'") || !notation.toLowerCase().includes('startabsolutevalue')) {
+  throw new Error('Complete SAT notation normalization is missing.');
 }
-if (!app.includes("['blank', '']") || !app.includes("['comma', ',']")) {
-  throw new Error('Global spoken-label symbol mappings are missing.');
+if (app.includes('location.reload') || sync.includes('location.reload')) {
+  throw new Error('Practice navigation must never use a full-page reload.');
+}
+if (app.includes('Progress merged') || sync.includes('Progress merged')) {
+  throw new Error('Routine cloud sync must stay silent.');
+}
+if (!app.includes("from '/calculator-layout.js'") || !app.includes('syncCalculator(item)')) {
+  throw new Error('The math-only Desmos split layout is missing.');
 }
 
 console.log('Using committed Daily Fifty production assets. No live-site scraping performed.');
