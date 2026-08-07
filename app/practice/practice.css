@@ -49,8 +49,7 @@ input:focus-visible {
 }
 
 .topbar {
-  position: sticky;
-  top: 10px;
+  position: relative;
   z-index: 20;
   display: grid;
   grid-template-columns: auto minmax(320px, 1fr) auto;
@@ -178,7 +177,7 @@ input:focus-visible {
 
 .workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1.8fr) minmax(330px, 0.72fr);
+  grid-template-columns: minmax(0, 1.72fr) minmax(380px, 0.8fr);
   gap: 22px;
   align-items: start;
   margin-top: 24px;
@@ -438,13 +437,12 @@ input:focus-visible {
 }
 
 .answer-column {
-  position: sticky;
-  top: 148px;
+  position: static;
   min-width: 0;
 }
 
 .answer-card {
-  padding: 25px;
+  padding: 28px;
 }
 
 .answer-header,
@@ -488,7 +486,7 @@ input:focus-visible {
 
 .answer-area {
   display: grid;
-  gap: 11px;
+  gap: 14px;
 }
 
 .choice {
@@ -536,10 +534,10 @@ input:focus-visible {
   display: grid;
   width: 100%;
   min-width: 0;
-  grid-template-columns: 36px minmax(0, 1fr);
+  grid-template-columns: 38px minmax(0, 1fr);
   align-items: center;
-  gap: 11px;
-  padding: 15px;
+  gap: 14px;
+  padding: 18px 17px;
   border: 0;
   background: transparent;
   cursor: pointer;
@@ -576,7 +574,7 @@ input:focus-visible {
 }
 
 .cross-button {
-  width: 48px;
+  width: 52px;
   border: 0;
   border-left: 1px solid #e7eaf1;
   color: #929bad;
@@ -1055,8 +1053,10 @@ input:focus-visible {
 }
 .choice-content,
 .choice-content p {
-  font-size: 18px !important;
-  line-height: 1.45 !important;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 17px !important;
+  font-weight: 500;
+  line-height: 1.55 !important;
 }
 .rich-content [aria-label^="Referenced Content"],
 .rich-content [data-testid*="referenced"],
@@ -1308,9 +1308,14 @@ input:focus-visible {
   gap: 12px;
 }
 .below-question-actions #skipButton {
+  grid-column: 3;
   justify-self: end;
 }
+.below-question-actions #previousButton {
+  grid-column: 1;
+}
 .button-calculator {
+  grid-column: 2;
   justify-self: center;
   border: 1px solid #b9c5eb;
   border-radius: 999px !important;
@@ -1463,5 +1468,11 @@ input:focus-visible {
   .below-question-actions #previousButton,
   .below-question-actions #skipButton {
     grid-row: 2;
+  }
+  .below-question-actions #previousButton {
+    grid-column: 1;
+  }
+  .below-question-actions #skipButton {
+    grid-column: 2;
   }
 }
