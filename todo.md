@@ -42,3 +42,13 @@
 - [x] Add regression coverage for navigation placement and non-sticky explanation behavior.
 - [x] Run tests and the production build.
 - [x] Publish and verify a Vercel preview before production.
+
+## Practice sizing and typography
+
+- [x] Make Previous and Skip equal-width controls while keeping opposite alignment.
+- [x] Stretch the answer card to match the full question toolbar and panel height.
+- [x] Make answer choices true pill-shaped controls.
+- [x] Match answer-choice typography to the question text font.
+- [x] Add regression coverage for equal widths, matched heights, pill shapes, and typography.
+- [x] Run tests and the production build.
+- [ ] Publish and verify the final Vercel preview.
