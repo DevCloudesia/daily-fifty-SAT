@@ -21,3 +21,15 @@
 - [x] Preserve calculator state while moving among math questions and hide it on R&W questions.
 - [x] Add regression tests for visibility, layout state, and resizing.
 - [x] Build and verify the complete calculator flow before publishing.
+
+## Production stylesheet recovery
+
+- [x] Reproduce the unstyled production page and identify the giant timer SVG fallback.
+- [x] Restore the complete base practice layout and component stylesheet.
+- [x] Give timer SVG geometry and fill safe inline fallbacks.
+- [x] Add build validation for required practice selectors and SVG safety.
+- [x] Add regression tests for the restored stylesheet.
+- [x] Run the full test and production-build checks.
+- [x] Perform an authenticated visual/static smoke test of the practice route.
+- [ ] Publish a preview pull request and verify its deployment.
+- [ ] Promote only after the repaired preview is visually verified.
