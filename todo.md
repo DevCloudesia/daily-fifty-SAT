@@ -75,3 +75,11 @@
 - [x] Run tests and the production build before publishing.
 - [x] Publish a preview for visual approval before production.
 - [ ] Complete authenticated visual verification of the preview before merge and production.
+
+## Answer submission integrity
+
+- [x] Preserve the exact answer selected by the user when checking a question.
+- [x] Show the correct answer separately without changing the selected answer.
+- [x] Match explanation body typography to the Georgia question and choice font.
+- [x] Add regression coverage for selection integrity and explanation typography.
+- [ ] Run tests, production build, and preview deployment checks.
