@@ -47,6 +47,10 @@ function stable(value) {
   return JSON.stringify(canonical(value || null));
 }
 
+export function sessionChangedSinceRequest(requestSnapshot, currentSnapshot) {
+  return stable(requestSnapshot?.session) !== stable(currentSnapshot?.session);
+}
+
 export function cloudChanges(remote, local) {
   const completed = normalizeIds(remote?.completed);
   const blocked = normalizeIds(remote?.blocked);
@@ -78,8 +82,13 @@ function snapshot() {
 }
 
 function applyRemote(remote, local) {
-  if (!remote || typeof remote !== 'object') return;
-  const changes = cloudChanges(remote, local);
+  if (!remote || typeof remote !== 'object') return true;
+  const current = snapshot();
+  // A sync response is based on the snapshot captured before its network request began. If the
+  // user chose or submitted an answer while that request was in flight, applying the response
+  // would replace the new answer with stale cloud state. Keep the live session and retry using it.
+  if (sessionChangedSinceRequest(local, current)) return false;
+  const changes = cloudChanges(remote, current);
   writeJson(KEYS.completed, changes.completed);
   writeJson(KEYS.blocked, changes.blocked);
   writeJson(KEYS.seen, changes.seen);
@@ -95,6 +104,7 @@ function applyRemote(remote, local) {
       detail: { ...remote, completed: changes.completed, blocked: changes.blocked, seen: changes.seen, session: changes.session },
     }));
   }
+  return true;
 }
 
 let started = false;
@@ -119,7 +129,7 @@ export function startCloudSync() {
       });
       if (!response.ok) throw new Error(`Sync returned ${response.status}.`);
       const data = await response.json();
-      if (data?.ok) applyRemote(data.payload, local);
+      if (data?.ok && !applyRemote(data.payload, local)) schedule(80);
     } catch (error) {
       console.warn('Daily Fifty cloud sync is temporarily unavailable.', error);
     } finally {

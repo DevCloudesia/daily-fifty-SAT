@@ -64,3 +64,32 @@
 - [x] Merge PR #3 into main.
 - [x] Promote the exact verified main deployment to production.
 - [x] Verify the production alias, deployment commit, and final build status.
+
+## Responsive practice proportions
+
+- [x] Remove unnecessary minimum height from short question cards.
+- [x] Keep the question toolbar at one consistent desktop height, even beside long answers.
+- [x] Give the answer panel a larger, stable share of the desktop workspace.
+- [x] Preserve the stacked mobile layout and calculator split behavior.
+- [x] Add regression coverage for the fixed toolbar and revised column proportions.
+- [x] Run tests and the production build before publishing.
+- [x] Publish a preview for visual approval before production.
+- [ ] Complete authenticated visual verification of the preview before merge and production.
+- [x] Increase the desktop answer panel to roughly 40% for long choices.
+- [x] Re-run proportion tests, production build, and preview checks.
+
+## Answer submission integrity
+
+- [x] Preserve the exact answer selected by the user when checking a question.
+- [x] Show the correct answer separately without changing the selected answer.
+- [x] Match explanation body typography to the Georgia question and choice font.
+- [x] Add regression coverage for selection integrity and explanation typography.
+- [x] Run tests, production build, and preview deployment checks.
+
+## Final production promotion and repository cleanup
+
+- [ ] Merge the approved PR #4 into `main` using the verified head commit.
+- [ ] Verify GitHub `main` contains the latest practice code and documentation.
+- [ ] Promote the exact verified deployment to the production website.
+- [ ] Verify the production alias, deployed commit, build status, and runtime errors.
+- [ ] Delete stale merged feature branches so the repository keeps only current work.
