@@ -52,3 +52,15 @@
 - [x] Add regression coverage for equal widths, matched heights, pill shapes, and typography.
 - [x] Run tests and the production build.
 - [x] Publish and verify the final Vercel preview.
+
+## Repository handoff and production release
+
+- [x] Document the canonical practice CSS and runtime file map in README.md.
+- [x] Add AGENTS.md instructions so future coding sessions edit and verify the correct files.
+- [x] Add a pull-request checklist that catches missing CSS and unsafe production promotion.
+- [x] Add GitHub CI for tests and production-build validation.
+- [x] Run all tests and the production build with the repository safeguards.
+- [ ] Publish and verify the documentation and CI preview.
+- [ ] Merge PR #3 into main.
+- [ ] Promote the exact verified main deployment to production.
+- [ ] Verify the production alias, deployment commit, and final build status.
