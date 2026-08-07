@@ -60,7 +60,7 @@
 - [x] Add a pull-request checklist that catches missing CSS and unsafe production promotion.
 - [x] Add GitHub CI for tests and production-build validation.
 - [x] Run all tests and the production build with the repository safeguards.
-- [ ] Publish and verify the documentation and CI preview.
+- [x] Publish and verify the documentation and CI preview.
 - [ ] Merge PR #3 into main.
 - [ ] Promote the exact verified main deployment to production.
 - [ ] Verify the production alias, deployment commit, and final build status.
