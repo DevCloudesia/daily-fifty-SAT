@@ -1,5 +1,11 @@
 import { writeFile } from 'node:fs/promises';
 
+if (process.env.ALLOW_PRODUCTION_SNAPSHOT !== '1') {
+  throw new Error(
+    'Production snapshotting is a legacy recovery tool. Set ALLOW_PRODUCTION_SNAPSHOT=1 only after reading README.md and reviewing the production deployment.',
+  );
+}
+
 const production = 'https://daily-fifty.vercel.app';
 for (const file of ['practice-app.js', 'queue.js', 'answers.js']) {
   const response = await fetch(`${production}/${file}?snapshot=${Date.now()}`, { cache: 'no-store' });
