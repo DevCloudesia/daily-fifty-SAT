@@ -179,7 +179,7 @@ input:focus-visible {
   display: grid;
   grid-template-columns: minmax(0, 1.72fr) minmax(380px, 0.8fr);
   gap: 22px;
-  align-items: start;
+  align-items: stretch;
   margin-top: 24px;
 }
 
@@ -437,12 +437,22 @@ input:focus-visible {
 }
 
 .answer-column {
+  display: flex;
   position: static;
+  height: 100%;
   min-width: 0;
 }
 
 .answer-card {
+  display: flex;
+  width: 100%;
+  min-height: 100%;
+  flex-direction: column;
   padding: 28px;
+}
+
+.answer-card .button {
+  border-radius: 999px;
 }
 
 .answer-header,
@@ -495,7 +505,7 @@ input:focus-visible {
   align-items: stretch;
   overflow: hidden;
   border: 1px solid #dfe4ee;
-  border-radius: 19px;
+  border-radius: 999px;
   background: #fff;
   transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
 }
@@ -1053,9 +1063,9 @@ input:focus-visible {
 }
 .choice-content,
 .choice-content p {
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  font-size: 17px !important;
-  font-weight: 500;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 18px !important;
+  font-weight: 400;
   line-height: 1.55 !important;
 }
 .rich-content [aria-label^="Referenced Content"],
@@ -1310,9 +1320,12 @@ input:focus-visible {
 .below-question-actions #skipButton {
   grid-column: 3;
   justify-self: end;
+  width: min(220px, 100%);
 }
 .below-question-actions #previousButton {
   grid-column: 1;
+  width: min(220px, 100%);
+  justify-self: start;
 }
 .button-calculator {
   grid-column: 2;
