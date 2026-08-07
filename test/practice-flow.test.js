@@ -72,3 +72,55 @@ test('calculator stays math-only, preserves its iframe, and supports keyboard re
   assert.ok(app.includes("event.key === 'End'"));
   assert.ok(app.includes("aria-orientation"));
 });
+
+test('practice ships its complete base stylesheet instead of deployment-only refinements', async () => {
+  const css = await readFile(new URL('../app/practice/practice.css', import.meta.url), 'utf8');
+  const requiredRules = [
+    '.app-shell',
+    '.topbar',
+    '.workspace',
+    '.question-toolbar',
+    '.question-panel',
+    '.answer-column',
+    '.answer-card',
+    '.choice-select',
+    '.question-grid',
+    '.timer-ring circle',
+  ];
+  assert.ok(css.length >= 20_000);
+  for (const rule of requiredRules) assert.ok(css.includes(rule), `missing ${rule}`);
+  assert.match(css, /\.timer-ring circle\s*\{[^}]*fill:\s*none/s);
+});
+
+test('timer SVG remains bounded and transparent even before CSS loads', async () => {
+  const page = await readFile(new URL('../app/practice/page.js', import.meta.url), 'utf8');
+  assert.match(page, /<svg className="timer-ring" width="54" height="54"[^>]*fill="none"/);
+  assert.equal((page.match(/<circle[^>]*fill="none"/g) ?? []).length, 2);
+});
+
+test('English navigation stays on opposite sides when the calculator is hidden', async () => {
+  const css = await readFile(new URL('../app/practice/practice.css', import.meta.url), 'utf8');
+  assert.match(css, /\.below-question-actions #previousButton\s*\{\s*grid-column:\s*1;/s);
+  assert.match(css, /\.below-question-actions #skipButton\s*\{[^}]*grid-column:\s*3;/s);
+  assert.match(css, /\.button-calculator\s*\{[^}]*grid-column:\s*2;/s);
+});
+
+test('practice chrome scrolls away and long choices keep readable spacing', async () => {
+  const css = await readFile(new URL('../app/practice/practice.css', import.meta.url), 'utf8');
+  assert.match(css, /\.topbar\s*\{[^}]*position:\s*relative;/s);
+  assert.match(css, /\.answer-column\s*\{[^}]*position:\s*static;/s);
+  assert.match(css, /\.answer-area\s*\{[^}]*gap:\s*14px;/s);
+  assert.match(css, /\.choice-content,\s*\.choice-content p\s*\{[^}]*font-size:\s*18px\s*!important;[^}]*line-height:\s*1\.55\s*!important;/s);
+});
+
+test('navigation widths, answer height, choice pills, and content typography are standardized', async () => {
+  const css = await readFile(new URL('../app/practice/practice.css', import.meta.url), 'utf8');
+  assert.match(css, /\.below-question-actions #previousButton\s*\{[^}]*width:\s*min\(220px,\s*100%\);/s);
+  assert.match(css, /\.below-question-actions #skipButton\s*\{[^}]*width:\s*min\(220px,\s*100%\);/s);
+  assert.match(css, /\.workspace\s*\{[^}]*align-items:\s*stretch;/s);
+  assert.match(css, /\.answer-column\s*\{[^}]*height:\s*100%;/s);
+  assert.match(css, /\.answer-card\s*\{[^}]*min-height:\s*100%;/s);
+  assert.match(css, /\.choice\s*\{[^}]*border-radius:\s*999px;/s);
+  assert.match(css, /\.answer-card \.button\s*\{[^}]*border-radius:\s*999px;/s);
+  assert.match(css, /\.choice-content,\s*\.choice-content p\s*\{[^}]*font-family:\s*Georgia,[^}]*font-size:\s*18px\s*!important;/s);
+});

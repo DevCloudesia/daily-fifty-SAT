@@ -25,9 +25,9 @@ export default function Page() {
               <S id="skillLabel" c="skill-label">Opening your next question…</S>
             </div>
             <div className="timer-wrap">
-              <svg className="timer-ring" viewBox="0 0 44 44" aria-hidden="true">
-                <circle className="timer-ring-bg" cx="22" cy="22" r="18" />
-                <circle id="timerRing" className="timer-ring-value" cx="22" cy="22" r="18" />
+              <svg className="timer-ring" width="54" height="54" viewBox="0 0 44 44" fill="none" aria-hidden="true">
+                <circle className="timer-ring-bg" cx="22" cy="22" r="18" fill="none" />
+                <circle id="timerRing" className="timer-ring-value" cx="22" cy="22" r="18" fill="none" />
               </svg>
               <div className="timer-copy"><strong id="timerText">60</strong><span>seconds</span></div>
             </div>

@@ -18,6 +18,30 @@ Production: https://daily-fifty.vercel.app
 - Vercel
 - Supabase Postgres and Edge Functions
 
+## Start here
+
+The committed repository is the source of truth. Do not reconstruct the app from a Vercel
+deployment or from `.next` build output.
+
+| What you are changing | Canonical file |
+| --- | --- |
+| Practice page structure | `app/practice/page.js` |
+| Complete practice styling | `app/practice/practice.css` |
+| Practice behavior and rendering | `public/practice-app.js` |
+| Math notation normalization | `public/notation.js` |
+| No-repeat question planning | `public/queue.js` |
+| Cross-device sync behavior | `public/cloud-sync.js` |
+| Homepage styling | `assets/homepage.css` |
+| Login styling | `app/login/login.css` |
+| Production CSS safeguards | `scripts/assets.mjs` and `scripts/verify-css-build.mjs` |
+
+`app/practice/practice.css` must contain the full practice interface. It is not an override file
+and must never be replaced with a small set of production refinements. The build fails when its
+required selectors, minimum size, or timer SVG safety rules disappear.
+
+For a deeper route and data-flow map, read [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+Future coding sessions must also follow [`AGENTS.md`](AGENTS.md).
+
 ## Local development
 
 ```bash
@@ -73,23 +97,18 @@ The matching Supabase secret can be set with:
 supabase secrets set DAILY_FIFTY_SYNC_KEY="your-key" --project-ref YOUR_PROJECT_REF
 ```
 
-## Source snapshot
+## Safe change workflow
 
-The Next.js project is complete, while the large browser assets are snapshotted from the current production deployment by `scripts/assets.mjs`. Run:
+1. Add the requested work to `todo.md`.
+2. Edit the canonical files listed above.
+3. Run `npm test`.
+4. Run `npm run build`.
+5. Push a feature branch and inspect the Vercel preview.
+6. Merge only after the preview is visually verified.
+7. Promote the exact verified deployment. Do not rebuild a different artifact for production.
 
-```bash
-npm run snapshot
-```
-
-This refreshes `public/practice-app.js`, `public/queue.js`, `public/answers.js`, and the current CSS files before a build. The snapshot process is idempotent and preserves the shared-database sync code.
-
-## Repository layout
-
-- `app/`: Next.js pages and server routes
-- `public/`: browser-side practice, queue, and answer logic
-- `scripts/`: production source validation and snapshot utilities
-- `supabase/functions/`: Edge Functions, with secrets read from environment variables
-- `supabase/migrations/`: normalized progress schema
+GitHub CI repeats the test and production-build checks for every pull request and every push to
+`main`. Vercel Git integration creates previews from non-production branches.
 
 ## Supabase setup
 
@@ -130,15 +149,36 @@ Completed question IDs are permanently stored in `daily_fifty_question_history`.
 
 ## Canonical production assets
 
-`main` contains the browser runtime and practice stylesheet used by the verified production deployment. Normal builds validate these committed files and do **not** scrape the live `/practice` page. This prevents the login stylesheet from replacing the practice interface during a build.
+`main` contains the canonical browser runtime and stylesheets. Normal development and builds
+validate committed files and do **not** scrape the live `/practice` page. This prevents an old,
+protected, or partially styled deployment from replacing current source.
 
-To intentionally refresh the three public browser assets from production:
+There is a guarded legacy recovery command for the three public JavaScript assets only:
 
 ```bash
-npm run snapshot
+ALLOW_PRODUCTION_SNAPSHOT=1 npm run snapshot:legacy
 ```
 
-Review the resulting diff before committing. The real `DAILY_FIFTY_SYNC_KEY` remains only in Vercel and Supabase environment settings.
+Do not use it during normal work. It never downloads CSS. Review every changed line before
+committing because production may be older than the branch. The real `DAILY_FIFTY_SYNC_KEY`
+remains only in Vercel and Supabase environment settings.
+
+## Production release
+
+The production alias is `https://daily-fifty.vercel.app`. The safe release sequence is:
+
+```bash
+npm test
+npm run build
+vercel promote https://VERIFIED-PREVIEW-DEPLOYMENT.vercel.app \
+  --scope leo-wangs-projects-81f92619 \
+  --yes
+vercel promote status --scope leo-wangs-projects-81f92619
+```
+
+Always record the verified preview commit and deployment URL in the pull request before merging.
+If a release is visually broken, promote the last known-good deployment immediately, then repair
+the source on a new preview. Never patch only the deployed bundle.
 
 ## SAT Question Bank access
 
