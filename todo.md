@@ -85,3 +85,11 @@
 - [x] Match explanation body typography to the Georgia question and choice font.
 - [x] Add regression coverage for selection integrity and explanation typography.
 - [x] Run tests, production build, and preview deployment checks.
+
+## Final production promotion and repository cleanup
+
+- [ ] Merge the approved PR #4 into `main` using the verified head commit.
+- [ ] Verify GitHub `main` contains the latest practice code and documentation.
+- [ ] Promote the exact verified deployment to the production website.
+- [ ] Verify the production alias, deployed commit, build status, and runtime errors.
+- [ ] Delete stale merged feature branches so the repository keeps only current work.
