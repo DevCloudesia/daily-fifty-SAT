@@ -177,7 +177,7 @@ input:focus-visible {
 
 .workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(430px, 0.92fr);
+  grid-template-columns: minmax(0, 1.52fr) minmax(460px, 1fr);
   gap: 22px;
   align-items: stretch;
   margin-top: 24px;
