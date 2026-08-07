@@ -110,5 +110,17 @@ test('practice chrome scrolls away and long choices keep readable spacing', asyn
   assert.match(css, /\.topbar\s*\{[^}]*position:\s*relative;/s);
   assert.match(css, /\.answer-column\s*\{[^}]*position:\s*static;/s);
   assert.match(css, /\.answer-area\s*\{[^}]*gap:\s*14px;/s);
-  assert.match(css, /\.choice-content,\s*\.choice-content p\s*\{[^}]*font-size:\s*17px\s*!important;[^}]*line-height:\s*1\.55\s*!important;/s);
+  assert.match(css, /\.choice-content,\s*\.choice-content p\s*\{[^}]*font-size:\s*18px\s*!important;[^}]*line-height:\s*1\.55\s*!important;/s);
+});
+
+test('navigation widths, answer height, choice pills, and content typography are standardized', async () => {
+  const css = await readFile(new URL('../app/practice/practice.css', import.meta.url), 'utf8');
+  assert.match(css, /\.below-question-actions #previousButton\s*\{[^}]*width:\s*min\(220px,\s*100%\);/s);
+  assert.match(css, /\.below-question-actions #skipButton\s*\{[^}]*width:\s*min\(220px,\s*100%\);/s);
+  assert.match(css, /\.workspace\s*\{[^}]*align-items:\s*stretch;/s);
+  assert.match(css, /\.answer-column\s*\{[^}]*height:\s*100%;/s);
+  assert.match(css, /\.answer-card\s*\{[^}]*min-height:\s*100%;/s);
+  assert.match(css, /\.choice\s*\{[^}]*border-radius:\s*999px;/s);
+  assert.match(css, /\.answer-card \.button\s*\{[^}]*border-radius:\s*999px;/s);
+  assert.match(css, /\.choice-content,\s*\.choice-content p\s*\{[^}]*font-family:\s*Georgia,[^}]*font-size:\s*18px\s*!important;/s);
 });
