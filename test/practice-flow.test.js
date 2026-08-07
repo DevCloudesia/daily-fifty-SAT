@@ -124,3 +124,14 @@ test('navigation widths, answer height, choice pills, and content typography are
   assert.match(css, /\.answer-card \.button\s*\{[^}]*border-radius:\s*999px;/s);
   assert.match(css, /\.choice-content,\s*\.choice-content p\s*\{[^}]*font-family:\s*Georgia,[^}]*font-size:\s*18px\s*!important;/s);
 });
+
+test('desktop practice proportions keep the toolbar fixed and reserve more room for answers', async () => {
+  const css = await readFile(new URL('../app/practice/practice.css', import.meta.url), 'utf8');
+  assert.match(css, /\.workspace\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1\.6fr\)\s*minmax\(430px,\s*0\.92fr\);/s);
+  assert.match(css, /\.question-column\s*\{[^}]*grid-template-rows:\s*110px\s*minmax\(0,\s*1fr\);/s);
+  assert.match(css, /\.question-toolbar\s*\{[^}]*height:\s*110px;[^}]*min-height:\s*110px;/s);
+  assert.match(css, /\.question-panel\s*\{[^}]*min-height:\s*480px;/s);
+  assert.match(css, /\.question-card\s*\{[^}]*height:\s*100%;[^}]*min-height:\s*390px;/s);
+  assert.match(css, /@media \(max-width:\s*720px\)[\s\S]*?\.question-column\s*\{[^}]*grid-template-rows:\s*auto\s*minmax\(0,\s*1fr\);/s);
+  assert.match(css, /@media \(max-width:\s*720px\)[\s\S]*?\.question-toolbar\s*\{[^}]*height:\s*auto;[^}]*min-height:\s*0;/s);
+});
