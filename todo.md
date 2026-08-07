@@ -8,7 +8,7 @@
 - [x] Make seen questions persistently excluded so they never appear again.
 - [x] Add regression coverage for notation rendering, loading, sync messaging, and no-repeat behavior.
 - [x] Run lint/build/tests and manually verify the complete practice flow.
-- [ ] Publish the completed changes to GitHub.
+- [x] Publish the completed changes to GitHub.
 
 ## Embedded Desmos calculator
 
