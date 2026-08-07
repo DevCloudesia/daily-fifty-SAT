@@ -76,7 +76,7 @@
 - [x] Publish a preview for visual approval before production.
 - [ ] Complete authenticated visual verification of the preview before merge and production.
 - [x] Increase the desktop answer panel to roughly 40% for long choices.
-- [ ] Re-run proportion tests, production build, and preview checks.
+- [x] Re-run proportion tests, production build, and preview checks.
 
 ## Answer submission integrity
 
