@@ -1,6 +1,6 @@
 export const CALCULATOR_MIN_RATIO = 30;
 export const CALCULATOR_MAX_RATIO = 70;
-export const CALCULATOR_DEFAULT_RATIO = 50;
+export const CALCULATOR_DEFAULT_RATIO = 56;
 
 export function clampCalculatorRatio(value) {
   const number = Number(value);
