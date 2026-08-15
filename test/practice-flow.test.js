@@ -60,7 +60,7 @@ test('practice navigation has no full-page refresh or routine merge toast', asyn
 test('calculator split ratio clamps and follows horizontal and vertical drags', () => {
   assert.equal(clampCalculatorRatio(-20), 30);
   assert.equal(clampCalculatorRatio(92), 70);
-  assert.equal(clampCalculatorRatio('not-a-number'), 50);
+  assert.equal(clampCalculatorRatio('not-a-number'), 56);
   assert.equal(calculatorRatioFromPointer({ clientX: 600 }, { left: 100, width: 1000 }), 50);
   assert.equal(calculatorRatioFromPointer({ clientY: 450 }, { top: 50, height: 800 }, true), 50);
 });
@@ -83,6 +83,21 @@ test('calculator stays math-only, preserves its iframe, and supports keyboard re
   assert.ok(app.includes("event.key === 'Home'"));
   assert.ok(app.includes("event.key === 'End'"));
   assert.ok(app.includes("aria-orientation"));
+});
+
+test('Desmos split protects question readability instead of squeezing SAT content', async () => {
+  const [css, page] = await Promise.all([
+    readFile(new URL('../app/practice/practice.css', import.meta.url), 'utf8'),
+    readFile(new URL('../app/practice/page.js', import.meta.url), 'utf8'),
+  ]);
+  assert.match(css, /--question-pane:\s*56%;/);
+  assert.match(css, /--question-pane-min:\s*460px;/);
+  assert.match(css, /--calculator-pane-min:\s*320px;/);
+  assert.match(css, /grid-template-columns:[\s\S]*?clamp\(var\(--question-pane-min\),\s*var\(--question-pane\),\s*calc\(100% - var\(--calculator-pane-min\) - 14px\)\)/);
+  assert.match(css, /\.workspace:has\(\.question-stage\.calculator-open\)\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1\.85fr\)\s*minmax\(420px,\s*0\.8fr\);/s);
+  assert.match(css, /\.question-stage\.calculator-open \.question-card\s*\{[^}]*padding-inline:\s*clamp\(24px,\s*3vw,\s*42px\);/s);
+  assert.match(css, /@media \(max-width:\s*1280px\) and \(min-width:\s*821px\)[\s\S]*?\.workspace:has\(\.question-stage\.calculator-open\)\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\);/s);
+  assert.ok(page.includes('aria-valuenow="56"'));
 });
 
 test('practice ships its complete base stylesheet instead of deployment-only refinements', async () => {
