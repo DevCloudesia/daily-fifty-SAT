@@ -77,7 +77,7 @@ export default function Page() {
         </div>
         <aside id="answerColumn" className="answer-column">
           <section id="answerCard" className="answer-card card">
-            <div className="answer-header"><div><S c="eyebrow">Your answer</S><h2>Choose carefully</h2></div><S id="questionCounter" c="counter-pill">1 / 50</S></div>
+            <div className="answer-header"><div><S c="eyebrow">Your answer</S><h2>Respond carefully</h2></div><S id="questionCounter" c="counter-pill">1 / 50</S></div>
             <div id="answerArea" className="answer-area" />
             <div id="feedback" className="feedback hidden" />
             <div className="primary-actions">
