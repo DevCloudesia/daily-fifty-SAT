@@ -106,3 +106,38 @@
 - [x] Run tests and the production build.
 - [x] Publish a preview deployment for visual approval before production.
 - [ ] Get visual approval on the preview before merging or promoting to production.
+
+## Desmos two-panel workspace redesign
+
+### Layout design
+- [ ] Replace the nested question-plus-Desmos split with one top-level left/right study workspace.
+- [ ] When Desmos opens on desktop, place the SAT question in the left pane and Desmos in the right pane at a true 50/50 default split.
+- [ ] Make the divider resize the two top-level panes instead of shrinking content inside the question card.
+- [ ] Give both left and right panes hard readable minimum widths and clamp drag/keyboard resizing before either pane can clip content.
+- [ ] Keep Desmos closed by default and restore the normal question-plus-answer side-by-side layout when it closes.
+- [ ] Preserve a clean stacked mobile/tablet layout without horizontal squeeze.
+
+### Answer panel design while Desmos is open
+- [ ] Move the answer panel below the entire left/right study workspace while Desmos is open.
+- [ ] Keep the answer card visually consistent with the current design, but render four multiple-choice answers as a 2-column by 2-row grid on desktop.
+- [ ] Keep grid-in numeric answers full width and preserve all selection, crossing-out, feedback, reveal, and completion behavior.
+- [ ] Return answer choices to the normal vertical layout when Desmos closes or on narrow screens.
+
+### Explanation design while Desmos is open
+- [ ] After submission/reveal, keep the explanation inside the same lower answer card instead of creating a separate full-width card.
+- [ ] Place the explanation after the answer choices/actions with deliberate vertical breathing room and the existing EXPLANATION / Why it works hierarchy.
+- [ ] Keep the separate explanation card behavior unchanged when Desmos is closed.
+- [ ] Preserve collapse behavior and make sure opening/closing Desmos after submission moves the explanation cleanly without duplicating content.
+
+### State and accessibility
+- [ ] Preserve Desmos iframe state across math-question navigation.
+- [ ] Preserve the user's split ratio within safe bounds, with 50/50 used as the first-open default.
+- [ ] Keep the divider keyboard accessible with correct orientation, min/max values, and Home/End behavior.
+- [ ] Keep Previous, Desmos, and Skip controls stable and prevent any question text, tables, MathML, or images from being clipped during resize.
+
+### Verification
+- [ ] Add regression coverage for top-level 50/50 layout, safe drag limits, lower 2x2 answer grid, and embedded explanation behavior.
+- [ ] Add regression coverage for Desmos close/reopen and submitted-answer layout transitions.
+- [ ] Run `npm test` and `npm run build` with the repository CSS safeguards.
+- [ ] Publish a new Vercel preview from PR #6 and verify the exact deployed commit.
+- [ ] Get visual approval on the redesigned preview before merging or promoting to production.
