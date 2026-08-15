@@ -34,8 +34,11 @@ export default function Page() {
                   cy="22"
                   r="18"
                   fill="none"
-                  pathLength="113.09733552923255"
-                  style={{ strokeDasharray: '113.09733552923255 113.09733552923255' }}
+                  style={{
+                    vectorEffect: 'none',
+                    strokeDasharray: '113.09733552923255 113.09733552923255',
+                    strokeDashoffset: '0',
+                  }}
                 />
               </svg>
               <div className="timer-copy"><strong id="timerText">60</strong><span>seconds</span></div>
