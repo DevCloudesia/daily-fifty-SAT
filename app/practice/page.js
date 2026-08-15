@@ -27,7 +27,16 @@ export default function Page() {
             <div className="timer-wrap">
               <svg className="timer-ring" width="54" height="54" viewBox="0 0 44 44" fill="none" aria-hidden="true">
                 <circle className="timer-ring-bg" cx="22" cy="22" r="18" fill="none" />
-                <circle id="timerRing" className="timer-ring-value" cx="22" cy="22" r="18" fill="none" />
+                <circle
+                  id="timerRing"
+                  className="timer-ring-value"
+                  cx="22"
+                  cy="22"
+                  r="18"
+                  fill="none"
+                  pathLength="113.09733552923255"
+                  style={{ strokeDasharray: '113.09733552923255 113.09733552923255' }}
+                />
               </svg>
               <div className="timer-copy"><strong id="timerText">60</strong><span>seconds</span></div>
             </div>
