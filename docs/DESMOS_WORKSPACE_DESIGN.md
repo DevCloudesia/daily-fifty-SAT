@@ -63,10 +63,10 @@ The default top split is exactly 50/50. The answer panel does not consume horizo
 
 ## DOM structure
 
-Use one `study-split` wrapper around the question column, divider, and calculator. The wrapper is `display: contents` while Desmos is closed so the existing question/answer desktop grid remains unchanged. When Desmos opens, the wrapper becomes the full-width top study grid.
+Use one `study-split` wrapper around the question column, visible workspace divider, and calculator. The wrapper is `display: contents` while Desmos is closed so the existing question/answer desktop grid remains unchanged. When Desmos opens, the wrapper becomes the full-width top study grid.
 
 ```text
-main.workspace
+main#practiceWorkspace.workspace
   div#studySplit.study-split
     section.question-column
       question toolbar
@@ -74,9 +74,9 @@ main.workspace
         questionStage
           questionCard
         navigation controls
-    div#calculatorDivider
+    div#workspaceDivider
     aside#calculatorPane
-  aside.answer-column
+  aside#answerColumn.answer-column
     section#answerCard.answer-card
       answer header
       answerArea
@@ -90,6 +90,8 @@ main.workspace
 
 The calculator iframe is never mounted inside `questionStage` again.
 
+The existing practice runtime still owns calculator open/close state and iframe loading. A small layout module mirrors that existing active state onto the new workspace. The old nested divider is retained only as an invisible compatibility hook so the current runtime does not need a risky full-file rewrite in the same release.
+
 ## Split sizing and dragging
 
 Desktop first-open ratio: `50%` question / `50%` calculator.
@@ -100,14 +102,13 @@ Hard content floors:
 - Desmos pane minimum: 420 px
 - divider: 14 px
 
-The JavaScript drag bounds are derived from the live `studySplit` width. The divider cannot move far enough to violate either minimum. CSS repeats the same limits with `clamp()` and `minmax()` so stale local storage or a JavaScript failure cannot collapse either pane.
+The visible workspace divider derives its drag bounds from the live `studySplit` width. It cannot move far enough to violate either minimum. CSS repeats the same limits with `clamp()` and `minmax()` so stale local storage or a JavaScript failure cannot collapse either pane.
 
-At widths where both minimums cannot fit comfortably, the study area stacks vertically instead of squeezing. The stacked breakpoint is 1000 px.
+At widths where both minimums cannot fit comfortably, the study area stacks vertically instead of squeezing. The stacked breakpoint is 1000 px. In stacked mode the resize handle is removed and both panels use their natural readable heights. This is safer than using a vertical drag control that can clip a long SAT stem.
 
-Keyboard behavior:
+Keyboard behavior on desktop:
 
-- desktop: Left/Right arrows resize
-- stacked: Up/Down arrows resize
+- Left/Right arrows resize
 - Home: smallest safe question share
 - End: largest safe question share
 - `aria-valuemin`, `aria-valuemax`, and `aria-valuenow` are updated from the live safe bounds
@@ -142,9 +143,9 @@ Closing Desmos after submission moves the explanation back to the external full-
 
 ## State model
 
-`state.calculator.open` remains the source of truth.
+The existing practice calculator state remains the source of truth for open/close and iframe loading. The layout module observes the runtime's active `questionStage` class and does not create a second calculator-open state.
 
-A layout version is added to preferences so the old 56% preview ratio does not override the new 50/50 first-open design. Existing music preferences are preserved.
+The new workspace split ratio uses its own versioned preference key so the old 56% preview ratio cannot override the new 50/50 default. Existing question progress and music preferences are untouched.
 
 The Desmos iframe remains mounted once loaded, so calculator expressions survive question navigation and layout changes.
 
@@ -152,9 +153,9 @@ The Desmos iframe remains mounted once loaded, so calculator expressions survive
 
 `workspace.calculator-open` controls the overall mode.
 
-`study-split.calculator-resizing` temporarily disables iframe pointer events while dragging.
+`study-split.workspace-resizing` temporarily disables iframe pointer events while dragging.
 
-`answer-area.choice-grid` identifies multiple-choice content so only those answers switch to 2 by 2 layout.
+The answer grid uses `:has(.choice)` so only multiple-choice content switches to 2 by 2 layout. Grid-in content remains full width.
 
 `explanation-card.embedded` removes nested card chrome when the explanation is inside the answer card.
 
