@@ -94,3 +94,14 @@
 - [x] Publish the verified `main` commit to the production website.
 - [x] Verify the production alias, deployed commit, build status, and runtime errors.
 - [x] Delete stale merged feature branches so the repository keeps only current work.
+
+## Desmos readability and placement bugfix
+
+- [ ] Reproduce the desktop squeeze that clips SAT question digits when Desmos is open.
+- [ ] Prevent the question pane from shrinking below a readable minimum width.
+- [ ] Rebalance the calculator placement so the complete question remains visible at common desktop widths.
+- [ ] Keep the draggable divider without allowing users to resize into an unreadable question pane.
+- [ ] Preserve the mobile stacked calculator behavior.
+- [ ] Add regression coverage for minimum question width and safe resize limits.
+- [ ] Run tests and the production build.
+- [ ] Publish a preview deployment for visual approval before production.
