@@ -49,7 +49,7 @@ export default function Page() {
               <article id="questionCard" className="question-card" aria-live="polite">
                 <div className="skeleton skeleton-title" /><div className="skeleton" /><div className="skeleton" />
               </article>
-              <div id="calculatorDivider" className="calculator-divider hidden" role="separator" aria-label="Resize question and calculator" aria-orientation="vertical" aria-valuemin="30" aria-valuemax="70" aria-valuenow="50" tabIndex="0"><span aria-hidden="true" /></div>
+              <div id="calculatorDivider" className="calculator-divider hidden" role="separator" aria-label="Resize question and calculator" aria-orientation="vertical" aria-valuemin="30" aria-valuemax="70" aria-valuenow="56" tabIndex="0"><span aria-hidden="true" /></div>
               <aside id="calculatorPane" className="calculator-pane hidden" aria-label="Desmos Calculator" tabIndex="-1">
                 <div className="calculator-header">
                   <div><strong>Desmos Calculator</strong><small>College Board graphing calculator</small></div>
