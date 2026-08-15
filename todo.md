@@ -97,11 +97,12 @@
 
 ## Desmos readability and placement bugfix
 
-- [ ] Reproduce the desktop squeeze that clips SAT question digits when Desmos is open.
-- [ ] Prevent the question pane from shrinking below a readable minimum width.
-- [ ] Rebalance the calculator placement so the complete question remains visible at common desktop widths.
-- [ ] Keep the draggable divider without allowing users to resize into an unreadable question pane.
-- [ ] Preserve the mobile stacked calculator behavior.
-- [ ] Add regression coverage for minimum question width and safe resize limits.
-- [ ] Run tests and the production build.
-- [ ] Publish a preview deployment for visual approval before production.
+- [x] Reproduce the desktop squeeze that clips SAT question digits when Desmos is open.
+- [x] Prevent the question pane from shrinking below a readable minimum width.
+- [x] Rebalance the calculator placement so the complete question remains visible at common desktop widths.
+- [x] Keep the draggable divider without allowing users to resize into an unreadable question pane.
+- [x] Preserve the mobile stacked calculator behavior.
+- [x] Add regression coverage for minimum question width and safe resize limits.
+- [x] Run tests and the production build.
+- [x] Publish a preview deployment for visual approval before production.
+- [ ] Get visual approval on the preview before merging or promoting to production.
