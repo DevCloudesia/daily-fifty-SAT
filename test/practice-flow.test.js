@@ -3,7 +3,14 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { buildOrderedPlan } from '../public/queue.js';
 import { cloudChanges, sameIdSet, sessionChangedSinceRequest } from '../public/cloud-sync.js';
-import { calculatorRatioFromPointer, clampCalculatorRatio } from '../public/calculator-layout.js';
+import {
+  CALCULATOR_DEFAULT_RATIO,
+  CALCULATOR_PANE_MIN_PX,
+  QUESTION_PANE_MIN_PX,
+  calculatorRatioBounds,
+  calculatorRatioFromPointer,
+  clampCalculatorRatio,
+} from '../public/calculator-layout.js';
 
 const id = (number) => number.toString(16).padStart(8, '0');
 
@@ -57,47 +64,90 @@ test('practice navigation has no full-page refresh or routine merge toast', asyn
   assert.equal(combined.includes('Progress merged'), false);
 });
 
-test('calculator split ratio clamps and follows horizontal and vertical drags', () => {
+test('calculator split starts at 50/50 and clamps to live readable pixel floors', () => {
+  assert.equal(CALCULATOR_DEFAULT_RATIO, 50);
+  assert.equal(QUESTION_PANE_MIN_PX, 500);
+  assert.equal(CALCULATOR_PANE_MIN_PX, 420);
   assert.equal(clampCalculatorRatio(-20), 30);
   assert.equal(clampCalculatorRatio(92), 70);
-  assert.equal(clampCalculatorRatio('not-a-number'), 56);
-  assert.equal(calculatorRatioFromPointer({ clientX: 600 }, { left: 100, width: 1000 }), 50);
-  assert.equal(calculatorRatioFromPointer({ clientY: 450 }, { top: 50, height: 800 }, true), 50);
+  assert.equal(clampCalculatorRatio('not-a-number'), 50);
+
+  const bounds = calculatorRatioBounds({ width: 1472 });
+  assert.ok(bounds.min > 34 && bounds.min < 35);
+  assert.equal(bounds.max, 70);
+  assert.equal(calculatorRatioFromPointer({ clientX: 736 }, { left: 0, width: 1472 }), 50);
+  assert.equal(calculatorRatioFromPointer({ clientX: 0 }, { left: 0, width: 1472 }), bounds.min);
+  assert.equal(calculatorRatioFromPointer({ clientX: 1472 }, { left: 0, width: 1472 }), bounds.max);
 });
 
-test('math calculator controls are embedded between navigation buttons and keep answers outside the split', async () => {
+test('math calculator controls stay between navigation buttons while Desmos is a sibling workspace', async () => {
   const page = await readFile(new URL('../app/practice/page.js', import.meta.url), 'utf8');
   const previous = page.indexOf('id="previousButton"');
-  const calculator = page.indexOf('id="calculatorButton"');
+  const calculatorButton = page.indexOf('id="calculatorButton"');
   const skip = page.indexOf('id="skipButton"');
-  const answerColumn = page.indexOf('className="answer-column"');
-  assert.ok(previous >= 0 && previous < calculator && calculator < skip);
+  const questionStage = page.indexOf('id="questionStage"');
+  const workspaceDivider = page.indexOf('id="workspaceDivider"');
+  const calculatorPane = page.indexOf('id="calculatorPane"');
+  const answerColumn = page.indexOf('id="answerColumn"');
+
+  assert.ok(previous >= 0 && previous < calculatorButton && calculatorButton < skip);
+  assert.ok(questionStage >= 0 && questionStage < workspaceDivider && workspaceDivider < calculatorPane && calculatorPane < answerColumn);
+  assert.ok(page.includes('id="studySplit"'));
   assert.ok(page.includes('data-src="https://www.desmos.com/testing/collegeboard/graphing"'));
-  assert.ok(page.indexOf('id="calculatorPane"') < answerColumn);
+  assert.ok(page.includes('src="/desmos-workspace.js"'));
 });
 
-test('calculator stays math-only, preserves its iframe, and supports keyboard resizing', async () => {
-  const app = await readFile(new URL('../public/practice-app.js', import.meta.url), 'utf8');
+test('calculator stays math-only and its iframe is loaded only once by the established runtime', async () => {
+  const [app, workspace] = await Promise.all([
+    readFile(new URL('../public/practice-app.js', import.meta.url), 'utf8'),
+    readFile(new URL('../public/desmos-workspace.js', import.meta.url), 'utf8'),
+  ]);
   assert.ok(app.includes("const isMath = item?.subject === 'Math'"));
   assert.ok(app.includes("if (active && !state.calculator.loaded)"));
-  assert.ok(app.includes("event.key === 'Home'"));
-  assert.ok(app.includes("event.key === 'End'"));
-  assert.ok(app.includes("aria-orientation"));
+  assert.ok(workspace.includes("event.key === 'Home'"));
+  assert.ok(workspace.includes("event.key === 'End'"));
+  assert.ok(workspace.includes("event.key === 'ArrowLeft'"));
+  assert.ok(workspace.includes("event.key === 'ArrowRight'"));
 });
 
-test('Desmos split protects question readability instead of squeezing SAT content', async () => {
-  const [css, page] = await Promise.all([
-    readFile(new URL('../app/practice/practice.css', import.meta.url), 'utf8'),
+test('Desmos open mode uses a top-level protected split and moves answers below it', async () => {
+  const css = await readFile(new URL('../app/practice/desmos-workspace.css', import.meta.url), 'utf8');
+  assert.match(css, /--workspace-question-pane:\s*50%;/);
+  assert.match(css, /--workspace-question-min:\s*500px;/);
+  assert.match(css, /--workspace-calculator-min:\s*420px;/);
+  assert.match(css, /\.workspace\.calculator-open \.study-split\s*\{[\s\S]*?grid-template-columns:[\s\S]*?clamp\(/);
+  assert.match(css, /\.workspace\.calculator-open \.answer-column\s*\{[^}]*grid-column:\s*1 \/ -1;/s);
+  assert.match(css, /\.workspace\.calculator-open \.question-stage\.calculator-open\s*\{[^}]*display:\s*block;/s);
+  assert.match(css, /\.legacy-calculator-divider\s*\{[^}]*display:\s*none\s*!important;/s);
+});
+
+test('Desmos answer mode is 2 by 2 for choices but one column for grid-in and narrow screens', async () => {
+  const css = await readFile(new URL('../app/practice/desmos-workspace.css', import.meta.url), 'utf8');
+  assert.match(css, /\.workspace\.calculator-open \.answer-area:has\(> \.choice\)\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\);/s);
+  assert.equal(css.includes('.grid-in-wrap {\n  grid-template-columns: repeat(2'), false);
+  assert.match(css, /@media \(max-width:\s*1000px\)[\s\S]*?\.workspace\.calculator-open \.answer-area:has\(> \.choice\)\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\);/s);
+});
+
+test('one explanation node moves between the answer card and external workspace slot', async () => {
+  const [page, workspace, css] = await Promise.all([
     readFile(new URL('../app/practice/page.js', import.meta.url), 'utf8'),
+    readFile(new URL('../public/desmos-workspace.js', import.meta.url), 'utf8'),
+    readFile(new URL('../app/practice/desmos-workspace.css', import.meta.url), 'utf8'),
   ]);
-  assert.match(css, /--question-pane:\s*56%;/);
-  assert.match(css, /--question-pane-min:\s*460px;/);
-  assert.match(css, /--calculator-pane-min:\s*320px;/);
-  assert.match(css, /grid-template-columns:[\s\S]*?clamp\(var\(--question-pane-min\),\s*var\(--question-pane\),\s*calc\(100% - var\(--calculator-pane-min\) - 14px\)\)/);
-  assert.match(css, /\.workspace:has\(\.question-stage\.calculator-open\)\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1\.85fr\)\s*minmax\(420px,\s*0\.8fr\);/s);
-  assert.match(css, /\.question-stage\.calculator-open \.question-card\s*\{[^}]*padding-inline:\s*clamp\(24px,\s*3vw,\s*42px\);/s);
-  assert.match(css, /@media \(max-width:\s*1280px\) and \(min-width:\s*821px\)[\s\S]*?\.workspace:has\(\.question-stage\.calculator-open\)\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\);/s);
-  assert.ok(page.includes('aria-valuenow="56"'));
+  assert.equal((page.match(/id="explanationCard"/g) ?? []).length, 1);
+  assert.ok(page.includes('id="answerExplanationSlot"'));
+  assert.ok(page.includes('id="workspaceExplanationSlot"'));
+  assert.ok(workspace.includes("const target = embedded ? elements.answerExplanationSlot : elements.workspaceExplanationSlot"));
+  assert.ok(workspace.includes('target.appendChild(elements.explanationCard)'));
+  assert.match(css, /\.answer-explanation-slot\.active\s*\{[^}]*margin-top:\s*42px;[^}]*padding-top:\s*34px;/s);
+  assert.match(css, /\.answer-explanation-slot \.explanation-card\.embedded\s*\{[^}]*border:\s*0;[^}]*box-shadow:\s*none;/s);
+});
+
+test('stacked Desmos mode removes the horizontal squeeze and resize handle', async () => {
+  const css = await readFile(new URL('../app/practice/desmos-workspace.css', import.meta.url), 'utf8');
+  assert.match(css, /@media \(max-width:\s*1000px\)[\s\S]*?\.workspace\.calculator-open \.study-split\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\);/s);
+  assert.match(css, /@media \(max-width:\s*1000px\)[\s\S]*?\.workspace\.calculator-open \.workspace-divider\s*\{[^}]*display:\s*none\s*!important;/s);
+  assert.match(css, /@media \(max-width:\s*1000px\)[\s\S]*?\.workspace\.calculator-open \.calculator-pane\s*\{[^}]*min-width:\s*0;[^}]*min-height:\s*520px;/s);
 });
 
 test('practice ships its complete base stylesheet instead of deployment-only refinements', async () => {
@@ -117,6 +167,13 @@ test('practice ships its complete base stylesheet instead of deployment-only ref
   assert.ok(css.length >= 20_000);
   for (const rule of requiredRules) assert.ok(css.includes(rule), `missing ${rule}`);
   assert.match(css, /\.timer-ring circle\s*\{[^}]*fill:\s*none/s);
+});
+
+test('practice route imports the Desmos workspace override after the canonical stylesheet', async () => {
+  const layout = await readFile(new URL('../app/practice/layout.js', import.meta.url), 'utf8');
+  const base = layout.indexOf("import './practice.css'");
+  const workspace = layout.indexOf("import './desmos-workspace.css'");
+  assert.ok(base >= 0 && workspace > base);
 });
 
 test('timer SVG remains bounded and transparent even before CSS loads', async () => {
