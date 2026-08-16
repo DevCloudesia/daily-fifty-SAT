@@ -1205,21 +1205,33 @@ input:focus-visible {
   padding-inline: 0.04em;
 }
 
-/* Math questions can share the existing question column with the official Desmos testing
-   calculator. The answer column remains a separate workspace column at every split ratio. */
+/* Desmos keeps a protected share of the math workspace. The question is intentionally wider
+   than the calculator by default, and neither pane can collapse far enough to clip SAT content. */
 .question-stage {
-  --question-pane: 50%;
+  --question-pane: 56%;
+  --question-pane-min: 460px;
+  --calculator-pane-min: 320px;
   min-width: 0;
 }
 .question-stage.calculator-open {
   display: grid;
-  grid-template-columns: minmax(0, var(--question-pane)) 14px minmax(0, 1fr);
+  grid-template-columns:
+    clamp(var(--question-pane-min), var(--question-pane), calc(100% - var(--calculator-pane-min) - 14px))
+    14px
+    minmax(var(--calculator-pane-min), 1fr);
   align-items: stretch;
   min-height: 620px;
+}
+.workspace:has(.question-stage.calculator-open) {
+  grid-template-columns: minmax(0, 1.85fr) minmax(420px, 0.8fr);
 }
 .question-stage.calculator-open .question-card {
   min-width: 0;
   overflow: auto;
+  padding-inline: clamp(24px, 3vw, 42px);
+}
+.question-stage.calculator-open .rich-content {
+  overflow-x: auto;
 }
 .calculator-pane {
   display: flex;
@@ -1459,6 +1471,12 @@ input:focus-visible {
   .choice-content,
   .choice-content p {
     font-size: 16px !important;
+  }
+}
+
+@media (max-width: 1280px) and (min-width: 821px) {
+  .workspace:has(.question-stage.calculator-open) {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 

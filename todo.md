@@ -97,11 +97,47 @@
 
 ## Desmos readability and placement bugfix
 
-- [ ] Reproduce the desktop squeeze that clips SAT question digits when Desmos is open.
-- [ ] Prevent the question pane from shrinking below a readable minimum width.
-- [ ] Rebalance the calculator placement so the complete question remains visible at common desktop widths.
-- [ ] Keep the draggable divider without allowing users to resize into an unreadable question pane.
-- [ ] Preserve the mobile stacked calculator behavior.
-- [ ] Add regression coverage for minimum question width and safe resize limits.
-- [ ] Run tests and the production build.
-- [ ] Publish a preview deployment for visual approval before production.
+- [x] Reproduce the desktop squeeze that clips SAT question digits when Desmos is open.
+- [x] Prevent the question pane from shrinking below a readable minimum width.
+- [x] Rebalance the calculator placement so the complete question remains visible at common desktop widths.
+- [x] Keep the draggable divider without allowing users to resize into an unreadable question pane.
+- [x] Preserve the mobile stacked calculator behavior.
+- [x] Add regression coverage for minimum question width and safe resize limits.
+- [x] Run tests and the production build.
+- [x] Publish a preview deployment for visual approval before production.
+- [x] Review the first preview feedback and supersede that layout with the two-panel workspace redesign below.
+
+## Desmos two-panel workspace redesign
+
+### Layout design
+- [x] Replace the nested question-plus-Desmos split with one top-level left/right study workspace.
+- [x] When Desmos opens on desktop, place the SAT question in the left pane and Desmos in the right pane at a true 50/50 default split.
+- [x] Make the divider resize the two top-level panes instead of shrinking content inside the question card.
+- [x] Give both left and right panes hard readable minimum widths and clamp drag/keyboard resizing before either pane can clip content.
+- [x] Preserve the existing calculator open/closed preference behavior and restore the normal question-plus-answer side-by-side layout when Desmos closes.
+- [x] Preserve a clean stacked mobile/tablet layout without horizontal squeeze.
+
+### Answer panel design while Desmos is open
+- [x] Move the answer panel below the entire left/right study workspace while Desmos is open.
+- [x] Keep the answer card visually consistent with the current design, but render four multiple-choice answers as a 2-column by 2-row grid on desktop.
+- [x] Keep grid-in numeric answers full width and preserve all selection, crossing-out, feedback, reveal, and completion behavior.
+- [x] Return answer choices to the normal vertical layout when Desmos closes or on narrow screens.
+
+### Explanation design while Desmos is open
+- [x] After submission/reveal, keep the explanation inside the same lower answer card instead of creating a separate full-width card.
+- [x] Place the explanation after the answer choices/actions with deliberate vertical breathing room and the existing EXPLANATION / Why it works hierarchy.
+- [x] Keep the separate explanation card behavior unchanged when Desmos is closed.
+- [x] Preserve collapse behavior and make sure opening/closing Desmos after submission moves the explanation cleanly without duplicating content.
+
+### State and accessibility
+- [x] Preserve Desmos iframe state across math-question navigation.
+- [x] Preserve the user's split ratio within safe bounds, with 50/50 used as the first-open default.
+- [x] Keep the desktop divider keyboard accessible with live min/max values and Home/End behavior.
+- [x] Keep Previous, Desmos, and Skip controls stable and prevent question text, tables, MathML, or images from being squeezed below the protected question width.
+
+### Verification
+- [x] Add regression coverage for top-level 50/50 layout, safe drag limits, lower 2x2 answer grid, and embedded explanation behavior.
+- [x] Add regression coverage for Desmos close/reopen and submitted-answer layout transitions.
+- [x] Run `npm test` and `npm run build` with the repository CSS safeguards.
+- [x] Publish a new Vercel preview from PR #6 and verify the exact deployed commit.
+- [x] Get visual approval on the redesigned preview before merging or promoting to production.

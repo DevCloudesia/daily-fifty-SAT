@@ -1,0 +1,246 @@
+/* Desmos workspace redesign.
+   Loaded after practice.css so the existing production layout remains the closed-state baseline. */
+
+/* The old runtime still looks up this divider. Keep it available to JavaScript but never visible. */
+.legacy-calculator-divider {
+  display: none !important;
+}
+
+/* Closed state: dissolve the wrapper so question and answer keep the established two-column grid. */
+.study-split {
+  display: contents;
+}
+
+.workspace-explanation-slot {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+.workspace-explanation-slot:empty {
+  display: none;
+}
+
+.workspace-explanation-slot > .explanation-card {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* The visible divider belongs to the top-level study split, never to the SAT question content. */
+.workspace-divider {
+  position: relative;
+  z-index: 4;
+  display: grid;
+  width: 14px;
+  height: 100%;
+  min-height: 100%;
+  place-items: center;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.workspace-divider.hidden {
+  display: none !important;
+}
+
+.workspace-divider::before {
+  content: "";
+  position: absolute;
+  inset: 0 5px;
+  border-radius: 999px;
+  background: #e1e6f0;
+  transition: background-color 150ms ease, box-shadow 150ms ease;
+}
+
+.workspace-divider span {
+  position: relative;
+  width: 5px;
+  height: 48px;
+  border-radius: 999px;
+  background: repeating-linear-gradient(to bottom, #77839a 0 3px, transparent 3px 7px);
+}
+
+.workspace-divider:hover::before,
+.workspace-divider:focus-visible::before,
+.study-split.workspace-resizing .workspace-divider::before {
+  background: #8095e4;
+  box-shadow: 0 0 0 4px rgba(128, 149, 228, 0.16);
+}
+
+.workspace-divider:focus-visible {
+  outline: none;
+}
+
+.study-split.workspace-resizing,
+.study-split.workspace-resizing * {
+  cursor: col-resize !important;
+  user-select: none !important;
+}
+
+.study-split.workspace-resizing .desmos-frame {
+  pointer-events: none;
+}
+
+/* Open state: one full-width study split, then one full-width answer panel below it. */
+.workspace.calculator-open {
+  grid-template-columns: minmax(0, 1fr) !important;
+  align-items: start;
+}
+
+.workspace.calculator-open .study-split {
+  --workspace-question-pane: 50%;
+  --workspace-question-min: 500px;
+  --workspace-calculator-min: 420px;
+  display: grid;
+  min-width: 0;
+  grid-column: 1 / -1;
+  grid-template-columns:
+    clamp(
+      var(--workspace-question-min),
+      var(--workspace-question-pane),
+      calc(100% - var(--workspace-calculator-min) - 14px)
+    )
+    14px
+    minmax(var(--workspace-calculator-min), 1fr);
+  gap: 0;
+  align-items: stretch;
+}
+
+.workspace.calculator-open .question-column {
+  grid-column: 1;
+  min-width: 0;
+}
+
+.workspace.calculator-open .workspace-divider {
+  grid-column: 2;
+}
+
+.workspace.calculator-open .calculator-pane {
+  grid-column: 3;
+  width: 100%;
+  min-width: var(--workspace-calculator-min);
+  min-height: 608px;
+  height: 100%;
+  border-radius: 32px;
+}
+
+/* Cancel the old nested split completely. The question stage contains only SAT content now. */
+.workspace.calculator-open .question-stage.calculator-open {
+  display: block;
+  min-width: 0;
+  min-height: 0;
+}
+
+.workspace.calculator-open .question-stage.calculator-open .question-card {
+  width: 100%;
+  min-width: 0;
+  overflow: visible;
+  padding-inline: clamp(30px, 4vw, 60px);
+}
+
+.workspace.calculator-open .question-stage.calculator-open .rich-content {
+  width: min(100%, 900px);
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.workspace.calculator-open .answer-column {
+  grid-column: 1 / -1;
+  width: 100%;
+  height: auto;
+  min-width: 0;
+}
+
+.workspace.calculator-open .answer-card {
+  min-height: 0;
+  padding: 30px;
+}
+
+/* Multiple choice becomes 2 x 2 only while Desmos is open.
+   Grid-in answers contain no .choice children, so they remain one full-width input. */
+.workspace.calculator-open .answer-area:has(> .choice) {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 18px;
+  row-gap: 16px;
+}
+
+.workspace.calculator-open .answer-area:has(> .choice) > .choice {
+  height: 100%;
+}
+
+.workspace.calculator-open .answer-area:has(> .choice) .choice-select {
+  min-height: 76px;
+}
+
+/* When Desmos is open, the explanation becomes the final section of the answer card. */
+.answer-explanation-slot {
+  display: none;
+}
+
+.answer-explanation-slot.active {
+  display: block;
+  margin-top: 42px;
+  padding-top: 34px;
+  border-top: 1px solid #e6eaf2;
+}
+
+.answer-explanation-slot .explanation-card.embedded {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.answer-explanation-slot .explanation-card.embedded .explanation-heading {
+  margin-bottom: 0;
+}
+
+.answer-explanation-slot .explanation-card.embedded .explanation-content {
+  margin-top: 20px;
+}
+
+/* The external explanation keeps its original full-width card appearance when Desmos is closed. */
+.workspace-explanation-slot .explanation-card:not(.embedded) {
+  grid-column: auto;
+}
+
+@media (max-width: 1000px) {
+  /* Never squeeze two horizontal study panes below their readable floors. */
+  .workspace.calculator-open .study-split {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+  }
+
+  .workspace.calculator-open .question-column,
+  .workspace.calculator-open .calculator-pane {
+    grid-column: 1;
+  }
+
+  .workspace.calculator-open .workspace-divider {
+    display: none !important;
+  }
+
+  .workspace.calculator-open .calculator-pane {
+    min-width: 0;
+    min-height: 520px;
+    height: 520px;
+  }
+
+  .workspace.calculator-open .answer-area:has(> .choice) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 720px) {
+  .workspace.calculator-open .answer-card {
+    padding: 20px;
+  }
+
+  .answer-explanation-slot.active {
+    margin-top: 32px;
+    padding-top: 26px;
+  }
+}
