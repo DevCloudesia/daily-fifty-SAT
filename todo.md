@@ -140,4 +140,4 @@
 - [x] Add regression coverage for Desmos close/reopen and submitted-answer layout transitions.
 - [x] Run `npm test` and `npm run build` with the repository CSS safeguards.
 - [x] Publish a new Vercel preview from PR #6 and verify the exact deployed commit.
-- [ ] Get visual approval on the redesigned preview before merging or promoting to production.
+- [x] Get visual approval on the redesigned preview before merging or promoting to production.
