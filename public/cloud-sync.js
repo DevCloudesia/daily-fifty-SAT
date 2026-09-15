@@ -1,24 +1,26 @@
 const SYNC_URL = '/api/sync';
 const PROFILE_COOKIE = 'df_profile';
+const PROFILE_PATTERN = /^(?:primary|shreejay|user_[0-9a-f]{32})$/;
 
 function activeProfile() {
   if (typeof document === 'undefined') return 'primary';
   const match = document.cookie.match(new RegExp(`(?:^|;\\s*)${PROFILE_COOKIE}=([^;]*)`));
-  return match ? decodeURIComponent(match[1]) : 'primary';
+  const profile = match ? decodeURIComponent(match[1]) : 'primary';
+  return PROFILE_PATTERN.test(profile) ? profile : 'primary';
 }
 
-// The practice UI has several modules that read localStorage directly. Install this shim before
-// practice-app.js evaluates so every Daily Fifty browser key is automatically isolated for the
-// second profile without changing the primary account's existing keys or data.
 function installProfileStorageNamespace() {
-  if (typeof window === 'undefined' || activeProfile() !== 'shreejay') return;
+  if (typeof window === 'undefined') return;
+  const profile = activeProfile();
+  if (profile === 'primary') return;
+
   const storage = window.localStorage;
   const proto = Object.getPrototypeOf(storage);
   if (proto.__dailyFiftyProfileNamespaceInstalled) return;
 
   const mapKey = (key) => {
     const text = String(key ?? '');
-    return text.startsWith('dailyFifty.') ? `dailyFifty.shreejay.${text.slice('dailyFifty.'.length)}` : text;
+    return text.startsWith('dailyFifty.') ? `dailyFifty.${profile}.${text.slice('dailyFifty.'.length)}` : text;
   };
   const getItem = proto.getItem;
   const setItem = proto.setItem;
@@ -99,8 +101,6 @@ export function sessionChangedSinceRequest(requestSnapshot, currentSnapshot) {
 export function cloudChanges(remote, local) {
   const completed = normalizeIds(remote?.completed);
   const blocked = normalizeIds(remote?.blocked);
-  // During a rolling deployment the older Edge Function does not return `seen` yet. Preserve
-  // the browser's append-only history until the backend version that understands it is live.
   const seen = Array.isArray(remote?.seen) ? normalizeIds(remote.seen) : normalizeIds(local?.seen);
   const session = remote?.session && typeof remote.session === 'object' ? remote.session : {};
   return {
@@ -129,9 +129,6 @@ function snapshot() {
 function applyRemote(remote, local) {
   if (!remote || typeof remote !== 'object') return true;
   const current = snapshot();
-  // A sync response is based on the snapshot captured before its network request began. If the
-  // user chose or submitted an answer while that request was in flight, applying the response
-  // would replace the new answer with stale cloud state. Keep the live session and retry using it.
   if (sessionChangedSinceRequest(local, current)) return false;
   const changes = cloudChanges(remote, current);
   writeJson(KEYS.completed, changes.completed);

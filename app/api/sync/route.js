@@ -13,9 +13,8 @@ function configuration() {
   return { url, key, secret };
 }
 
-function syncUrlForProfile(url, profile) {
-  if (profile !== 'shreejay') return url;
-  const next = url.replace(/\/daily-fifty-sync\/?$/, '/daily-fifty-sync-shreejay');
+function profileSyncUrl(url) {
+  const next = url.replace(/\/daily-fifty-sync\/?$/, '/daily-fifty-sync-profile');
   if (next === url) throw new Error('Daily Fifty sync URL is not in the expected format.');
   return next;
 }
@@ -30,12 +29,19 @@ async function forward(payload, mode) {
   const profile = await currentProfile(secret);
   if (!profile) return NextResponse.json({ error: 'Unauthorized' }, { status: 401, headers: { 'cache-control': 'no-store' } });
 
-  const response = await fetch(syncUrlForProfile(url, profile), {
+  const headers = {
+    'content-type': 'application/json',
+    'x-daily-fifty-key': key,
+  };
+  let targetUrl = url;
+  if (profile !== 'primary') {
+    targetUrl = profileSyncUrl(url);
+    headers['x-daily-fifty-profile'] = profile;
+  }
+
+  const response = await fetch(targetUrl, {
     method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      'x-daily-fifty-key': key,
-    },
+    headers,
     body: JSON.stringify(mode ? { payload, mode } : { payload }),
     cache: 'no-store',
     signal: AbortSignal.timeout(12000),
@@ -57,8 +63,6 @@ export async function POST(request) {
   }
 }
 
-// A read must stay a read: this used to run the full write path, upserting the session, every
-// answer row, and the entire retirement history on every page load.
 export async function GET() {
   try {
     return await forward({}, 'read');

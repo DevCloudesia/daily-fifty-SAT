@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server';
-import { AUTH_COOKIE, getSessionProfile } from './lib/session';
+import { AUTH_COOKIE, PROFILE_COOKIE, getSessionProfile } from './lib/session';
 
-// Only /practice (the actual practice UI and progress) and /api/sync (the endpoint that reads
-// and writes shared progress) are gated. The home page stays public as a landing page, and
-// /login must never be matched here or a signed-out visitor could never reach the login form.
+const SIX_MONTHS_SECONDS = 60 * 60 * 24 * 180;
+
 export const config = {
   matcher: ['/practice/:path*', '/api/sync'],
 };
@@ -11,10 +10,18 @@ export const config = {
 export async function middleware(request) {
   const secret = process.env.DAILY_FIFTY_SITE_PASSWORD;
   const token = request.cookies.get(AUTH_COOKIE)?.value;
-  // A missing secret must deny access, not allow it - the same fail-closed rule already used by
-  // the sync edge function when DAILY_FIFTY_SYNC_KEY is unset.
   const profile = secret ? await getSessionProfile(token, secret) : null;
-  if (profile) return NextResponse.next();
+  if (profile) {
+    const response = NextResponse.next();
+    response.cookies.set(PROFILE_COOKIE, profile, {
+      httpOnly: false,
+      secure: true,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: SIX_MONTHS_SECONDS,
+    });
+    return response;
+  }
 
   if (request.nextUrl.pathname.startsWith('/api/sync')) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401, headers: { 'cache-control': 'no-store' } });

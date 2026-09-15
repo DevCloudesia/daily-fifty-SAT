@@ -45,7 +45,14 @@
 .login-sub {
   margin: 0 0 22px;
   font-size: 14px;
+  line-height: 1.45;
   color: #6b7280;
+}
+
+.login-fields {
+  width: 100%;
+  display: grid;
+  gap: 12px;
 }
 
 .login-input {
@@ -66,6 +73,7 @@
 
 .login-error {
   width: 100%;
+  box-sizing: border-box;
   margin: 12px 0 0;
   padding: 10px 14px;
   border-radius: 14px;
@@ -97,4 +105,16 @@
 
 .login-button:active {
   transform: translateY(0);
+}
+
+.login-link {
+  margin-top: 18px;
+  color: #0f766e;
+  font-size: 13px;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.login-link:hover {
+  text-decoration: underline;
 }

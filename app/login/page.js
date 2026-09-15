@@ -9,7 +9,7 @@ export default async function LoginPage({ searchParams }) {
       <form className="login-card" action={login}>
         <span className="login-mark">50</span>
         <h1>The Daily Fifty</h1>
-        <p className="login-sub">Enter the password to continue.</p>
+        <p className="login-sub">Enter your password to continue.</p>
         <input
           className="login-input"
           type="password"
@@ -21,6 +21,7 @@ export default async function LoginPage({ searchParams }) {
         />
         {hasError ? <p className="login-error">That password isn&apos;t right. Try again.</p> : null}
         <button className="login-button" type="submit">Unlock</button>
+        <a className="login-link" href="/signup">Create an account</a>
       </form>
     </main>
   );
