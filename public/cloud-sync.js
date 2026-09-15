@@ -1,4 +1,49 @@
 const SYNC_URL = '/api/sync';
+const PROFILE_COOKIE = 'df_profile';
+
+function activeProfile() {
+  if (typeof document === 'undefined') return 'primary';
+  const match = document.cookie.match(new RegExp(`(?:^|;\\s*)${PROFILE_COOKIE}=([^;]*)`));
+  return match ? decodeURIComponent(match[1]) : 'primary';
+}
+
+// The practice UI has several modules that read localStorage directly. Install this shim before
+// practice-app.js evaluates so every Daily Fifty browser key is automatically isolated for the
+// second profile without changing the primary account's existing keys or data.
+function installProfileStorageNamespace() {
+  if (typeof window === 'undefined' || activeProfile() !== 'shreejay') return;
+  const storage = window.localStorage;
+  const proto = Object.getPrototypeOf(storage);
+  if (proto.__dailyFiftyProfileNamespaceInstalled) return;
+
+  const mapKey = (key) => {
+    const text = String(key ?? '');
+    return text.startsWith('dailyFifty.') ? `dailyFifty.shreejay.${text.slice('dailyFifty.'.length)}` : text;
+  };
+  const getItem = proto.getItem;
+  const setItem = proto.setItem;
+  const removeItem = proto.removeItem;
+
+  Object.defineProperty(proto, '__dailyFiftyProfileNamespaceInstalled', { value: true, configurable: true });
+  Object.defineProperty(proto, 'getItem', {
+    value(key) { return getItem.call(this, mapKey(key)); },
+    configurable: true,
+    writable: true,
+  });
+  Object.defineProperty(proto, 'setItem', {
+    value(key, value) { return setItem.call(this, mapKey(key), value); },
+    configurable: true,
+    writable: true,
+  });
+  Object.defineProperty(proto, 'removeItem', {
+    value(key) { return removeItem.call(this, mapKey(key)); },
+    configurable: true,
+    writable: true,
+  });
+}
+
+installProfileStorageNamespace();
+
 const KEYS = Object.freeze({
   completed: 'dailyFifty.completed.v4',
   blocked: 'dailyFifty.blocked.v4',
